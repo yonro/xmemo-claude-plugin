@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">XMemo Claude plugin architecture</title>
+  <desc id="desc">Claude Code uses the memory-steward Skill and OAuth MCP connection to read and write durable user-controlled XMemo context.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#0B1020"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="0.5" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#EC4899"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7DD3FC"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="420" rx="28" fill="url(#bg)"/>
+  <circle cx="1050" cy="48" r="150" fill="#8B5CF6" opacity="0.08"/>
+  <circle cx="140" cy="390" r="180" fill="#06B6D4" opacity="0.07"/>
+
+  <text x="60" y="62" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="26" font-weight="700">Claude works. XMemo carries continuity.</text>
+  <text x="60" y="92" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15">Skill-guided recall, scoped OAuth, and durable user-controlled memory</text>
+
+  <g filter="url(#shadow)">
+    <rect x="60" y="140" width="235" height="180" rx="22" fill="#1F2937" stroke="#374151"/>
+    <rect x="335" y="140" width="235" height="180" rx="22" fill="#1F2937" stroke="#374151"/>
+    <rect x="630" y="140" width="235" height="180" rx="22" fill="#1F2937" stroke="#374151"/>
+    <rect x="905" y="140" width="235" height="180" rx="22" fill="#1F2937" stroke="#374151"/>
+  </g>
+
+  <rect x="82" y="162" width="46" height="46" rx="14" fill="#D97757"/>
+  <text x="105" y="193" text-anchor="middle" fill="#FFFFFF" font-family="Georgia,serif" font-size="26" font-weight="700">C</text>
+  <text x="82" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">Claude Code</text>
+  <text x="82" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Reason · inspect · build</text>
+  <text x="82" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Verify live workspace truth</text>
+
+  <rect x="357" y="162" width="46" height="46" rx="14" fill="#312E81" stroke="#8B5CF6"/>
+  <path d="M371 184h18M380 175v18" stroke="#C4B5FD" stroke-width="3" stroke-linecap="round"/>
+  <text x="357" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">memory-steward</text>
+  <text x="357" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Recall · distill · review</text>
+  <text x="357" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Checkpoint · resume · handoff</text>
+
+  <rect x="652" y="162" width="46" height="46" rx="14" fill="#064E3B" stroke="#10B981"/>
+  <path d="M664 186a11 11 0 1 1 22 0v9h-22zM670 186v-4a5 5 0 0 1 10 0v4" fill="none" stroke="#6EE7B7" stroke-width="2.5"/>
+  <text x="652" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">OAuth MCP</text>
+  <text x="652" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Dynamic Client Registration</text>
+  <text x="652" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">memory:read · memory:write</text>
+
+  <rect x="927" y="162" width="46" height="46" rx="14" fill="url(#brand)"/>
+  <path d="M939 196v-22l11 12 11-12v22" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="927" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">XMemo</text>
+  <text x="927" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">16 focused tools · 0 resources</text>
+  <text x="927" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Durable authorized context</text>
+
+  <path d="M295 230H327" stroke="#7DD3FC" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M570 230H622" stroke="#7DD3FC" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M865 230H897" stroke="#7DD3FC" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <path d="M1020 338 C1020 380,180 380,180 338" fill="none" stroke="#A78BFA" stroke-width="2" stroke-dasharray="7 7" marker-end="url(#arrow)" opacity="0.9"/>
+  <text x="600" y="394" text-anchor="middle" fill="#C4B5FD" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Relevant context returns to Claude; durable outcomes remain under user control</text>
+</svg>

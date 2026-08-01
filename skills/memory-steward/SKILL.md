@@ -1,6 +1,6 @@
 ---
-name: xmemo-memory-steward
-description: Use XMemo with Claude to recall, review, and preserve durable outcomes across conversations and AI agents. Trigger for project context, important-conversation distillation, brainstorming and plan review, audits of work from Claude Code, Codex, GitHub Copilot, Kiro, or other agents, progress checkpoints, session resume, TODOs, blockers, handoffs, and memory lifecycle requests. Separate durable memory, working state, evidence, events, and actions; deduplicate writes; never archive raw transcripts or secrets.
+name: memory-steward
+description: Use XMemo to recall and preserve durable project context, decisions, plans, TODOs, checkpoints, and cross-agent handoffs. Use when resuming work, distilling an important conversation, reviewing a brainstorm or implementation plan against saved context, recording progress or blockers, handing work between Claude and another compatible agent, or managing memory lifecycle actions. Never save raw transcripts, secrets, or tentative ideas as confirmed decisions.
 ---
 
 # XMemo Memory Steward

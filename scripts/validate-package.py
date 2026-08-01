@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Offline structural and safety validation for XMemo for Claude."""
+"""Offline structural and safety validation for the XMemo Claude plugin."""
 
 from __future__ import annotations
 
 import json
 import re
+import struct
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 MCP_CONFIG = ROOT / ".mcp.json"
-SKILL = ROOT / "skills" / "xmemo-memory-steward" / "SKILL.md"
+SKILL = ROOT / "skills" / "memory-steward" / "SKILL.md"
 
 REQUIRED_FILES = {
     MANIFEST,
@@ -24,10 +26,11 @@ REQUIRED_FILES = {
     ROOT / "LICENSE",
     ROOT / "CHANGELOG.md",
     ROOT / "assets" / "icon.png",
-    ROOT / "skills" / "xmemo-memory-steward" / "references" / "memory-policy.md",
-    ROOT / "skills" / "xmemo-memory-steward" / "references" / "review-playbooks.md",
-    ROOT / "skills" / "xmemo-memory-steward" / "references" / "tool-routing.md",
-    ROOT / "skills" / "xmemo-memory-steward" / "references" / "workflows.md",
+    ROOT / "assets" / "claude-memory-flow.svg",
+    ROOT / "skills" / "memory-steward" / "references" / "memory-policy.md",
+    ROOT / "skills" / "memory-steward" / "references" / "review-playbooks.md",
+    ROOT / "skills" / "memory-steward" / "references" / "tool-routing.md",
+    ROOT / "skills" / "memory-steward" / "references" / "workflows.md",
 }
 
 EXPECTED_CLAUDE_TOOLS = {
@@ -95,8 +98,8 @@ def load_json(path: Path, errors: list[str]) -> dict:
 def validate_manifest(errors: list[str]) -> None:
     manifest = load_json(MANIFEST, errors)
     expected = {
-        "name": "xmemo-claude-plugin",
-        "displayName": "XMemo for Claude",
+        "name": "xmemo",
+        "displayName": "XMemo",
         "version": "0.1.0",
         "license": "MIT",
         "skills": "./skills/",
@@ -138,15 +141,15 @@ def validate_skill(errors: list[str]) -> None:
         return
 
     frontmatter = match.group(1)
-    if not re.search(r"(?m)^name:\s*xmemo-memory-steward\s*$", frontmatter):
-        fail(errors, "SKILL.md frontmatter name must be xmemo-memory-steward")
+    if not re.search(r"(?m)^name:\s*memory-steward\s*$", frontmatter):
+        fail(errors, "SKILL.md frontmatter name must be memory-steward")
     if not re.search(r"(?m)^description:\s*\S", frontmatter):
         fail(errors, "SKILL.md frontmatter requires a non-empty description")
 
     routing = (
         ROOT
         / "skills"
-        / "xmemo-memory-steward"
+        / "memory-steward"
         / "references"
         / "tool-routing.md"
     ).read_text(encoding="utf-8")
@@ -167,6 +170,43 @@ def validate_skill(errors: list[str]) -> None:
         path = SKILL.parent / reference
         if not path.is_file():
             fail(errors, f"SKILL.md references missing file: {reference}")
+
+
+def validate_assets_and_readme(errors: list[str]) -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    icon = ROOT / "assets" / "icon.png"
+    diagram = ROOT / "assets" / "claude-memory-flow.svg"
+
+    png = icon.read_bytes()
+    if png[:8] != b"\x89PNG\r\n\x1a\n":
+        fail(errors, "assets/icon.png must be a valid PNG")
+    elif len(png) < 24:
+        fail(errors, "assets/icon.png is truncated")
+    else:
+        width, height = struct.unpack(">II", png[16:24])
+        if width != height:
+            fail(errors, "assets/icon.png must be square")
+
+    try:
+        ET.parse(diagram)
+    except (OSError, ET.ParseError) as exc:
+        fail(errors, f"assets/claude-memory-flow.svg must be parseable XML: {exc}")
+
+    required_readme_references = {
+        "assets/icon.png",
+        "assets/claude-memory-flow.svg",
+        "examples/workflow-prompts.md",
+        "PRIVACY.md",
+        "SECURITY.md",
+        "CHANGELOG.md",
+    }
+    for reference in sorted(required_readme_references):
+        if reference not in readme:
+            fail(errors, f"README.md is missing required reference: {reference}")
+
+    expected_cdn = "cdn.jsdelivr.net/gh/yonro/xmemo-claude-plugin@main/assets/"
+    if expected_cdn not in readme:
+        fail(errors, "README.md must use the public CDN asset path")
 
 
 def validate_secrets(errors: list[str]) -> None:
@@ -191,6 +231,7 @@ def main() -> int:
         validate_manifest(errors)
         validate_mcp(errors)
         validate_skill(errors)
+        validate_assets_and_readme(errors)
         validate_secrets(errors)
 
     if errors:

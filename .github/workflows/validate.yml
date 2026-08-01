@@ -1,4 +1,4 @@
-name: Validate plugin
+name: Validate XMemo Claude plugin
 
 on:
   pull_request:

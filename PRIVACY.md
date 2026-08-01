@@ -1,6 +1,6 @@
 # Privacy
 
-XMemo for Claude connects Claude Code to the hosted XMemo MCP service. The plugin repository itself does not receive or retain memory content.
+The XMemo Claude plugin connects Claude Code to the hosted XMemo MCP service. The plugin repository itself does not receive or retain memory content.
 
 ## Data flow
 
