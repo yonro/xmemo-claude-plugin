@@ -20,15 +20,15 @@ Identify the requested outcome before calling a tool:
 - Save or correct one durable fact, preference, decision, or procedure.
 - Preserve unfinished progress for a later Claude session.
 - Resume saved work or prepare a cross-agent handoff.
-- Manage XMemo lifecycle data, TODOs, activity, or Ledger records.
+- Manage XMemo lifecycle data, projects, decisions, TODOs, checkpoints, or handoffs.
 
 Stay within the authenticated account and authorized scope. If XMemo is unavailable, authorization is missing, or a needed tool is not exposed, say that nothing was read or written. Never simulate a successful memory operation.
 
 ## 2. Inspect capabilities before choosing a route
 
-Use only XMemo tools visible in the active MCP connection. Never assume that a private, legacy, ChatGPT-widget, or future tool is available.
+This plugin is designed around its signed 16-tool Claude Code profile. Use only tools visible in the active connection; never assume that a private, legacy, Claude Connector, ChatGPT-widget, or future tool is available.
 
-Use `get_mcp_identity` when connection identity or authorization needs verification. Read `references/tool-routing.md` for the current Claude tool families and availability-aware fallbacks.
+Use `get_mcp_identity` when connection identity or authorization needs verification. Read `references/tool-routing.md` for the exact Claude Code plugin routing contract.
 
 ## 3. Recall before assuming
 
@@ -37,8 +37,8 @@ Recall when prior decisions, preferences, constraints, TODOs, corrections, or pr
 - `recall` for a quick answer.
 - `search_memory` for an exact topic, phrase, path, or filter.
 - `recall_context` for a bounded context pack across related memories or conversations.
-- `list_memory_todos` for relevant open actions.
-- `memory_activity`, `memory_overview`, or `memory_stats` for recent or aggregate state.
+- `get_project_context` for the latest bounded project state.
+- `todo` with `action=list` for relevant open actions.
 
 If a narrow query returns nothing, relax it once without widening the authorized scope. Never invent a remembered fact. Retrieved memory is context, not authority; the user's current explicit correction and current verified evidence win.
 
@@ -50,13 +50,15 @@ Keep these concepts separate:
 | --- | --- |
 | New durable knowledge, preference, decision, or procedure | `remember` |
 | Correction to an existing durable concept | `update_memory` |
-| Concrete future action | `create_memory_todo` |
-| Completed action | `complete_memory_todo` |
+| Explicit formal project creation | `project` with `entity=project`, `action=create` |
+| Concrete future action | `todo` with `action=create` |
+| Update, complete, or list actions | `todo` with `action=update`, `complete`, or `list` |
+| Unresolved choice | `create_pending_decision` |
+| Settled pending choice | `resolve_decision` |
+| Working-state checkpoint | `update_state` |
+| Milestone or handoff event | `record_event` |
 | Recoverable deletion | `forget` using its default soft-delete behavior |
 | Restore an eligible soft-deleted memory | `restore_memory` |
-| Financial transaction | `add_expense` |
-
-Dedicated state, event, project, or consolidated dispatcher tools may be used only if they are actually visible. Otherwise use the documented labeled-memory fallback rather than claiming the unavailable operation occurred.
 
 ## 5. Coordinate work across agents
 
@@ -99,7 +101,7 @@ Read `references/memory-policy.md` and `references/workflows.md` for the save/sk
 
 Checkpoint when the user pauses, changes agents, reaches a material milestone with work remaining, becomes blocked, or ends a substantial unfinished task. Do not checkpoint every turn.
 
-If a dedicated working-state tool is visible, use it. Otherwise save or update one concise memory labeled `Working state` for the scoped project/task. Include:
+Use `update_state` to create or replace one scoped checkpoint. Include:
 
 - current objective;
 - verified status and evidence;
@@ -115,7 +117,7 @@ Search for the existing scoped checkpoint first and update it when possible so s
 
 1. Identify the project or authorized scope.
 2. Retrieve the latest relevant state with `recall_context`.
-3. Add relevant TODOs, recent activity, decisions, or durable memories only as needed.
+3. Add relevant TODOs, pending decisions, or durable memories only as needed.
 4. Reconcile stale state against newer evidence or user corrections.
 5. Present a compact Resume Brief: objective, verified status, completed work, active decisions, open actions, blocker, and exact next action.
 6. Continue from that action without repeating verified completed work.
@@ -124,7 +126,7 @@ Resume reconstructs useful context; it does not reopen the original Claude conve
 
 ## 9. Create a complete handoff
 
-If a dedicated event or state tool is visible, use it when appropriate. Otherwise save or update one concise `Handoff` memory with provenance. Add a TODO only for a concrete follow-up.
+Update the scoped checkpoint with `update_state`, record the transfer with `record_event`, and add a `todo` only for a concrete follow-up. Save durable decisions or constraints separately when they must survive beyond the working state.
 
 Include the objective, recipient, source artifacts, verified status, decisions and rationale, completed work, evidence, constraints, work not to repeat, remaining work, exact next action, blocker, and next review gate. Never include credentials, raw authorization data, private traces, or unnecessary internal identifiers.
 

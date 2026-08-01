@@ -4,7 +4,7 @@
 
 XMemo for Claude adds a durable, user-controlled memory workflow to Claude Code. It combines:
 
-- an XMemo MCP connection for recall, search, memory lifecycle, TODOs, activity, and Ledger data;
+- an XMemo MCP connection with a focused 16-tool profile for memory lifecycle, project context, TODOs, checkpoints, decisions, and handoffs;
 - the `xmemo-memory-steward` Skill for deciding what deserves memory, creating useful checkpoints, resuming work, reviewing plans, and handing work to another agent without archiving raw conversations.
 
 The plugin is intentionally conservative: it writes only when the user or active workflow calls for a durable outcome, never stores secrets, and treats retrieved memory as context rather than unquestionable truth.
@@ -66,9 +66,9 @@ claude plugin validate D:\repos\xmemo-claude-plugin --strict
 
 ## Capability boundary
 
-The Skill adapts to the XMemo tools actually exposed by the connected server. It does not grant access to private server tools and does not claim that an unavailable operation succeeded. Optional lifecycle helpers such as dedicated state or event tools may be used only when they are visible in the active MCP connection; otherwise the Skill uses a concise, labeled durable-memory fallback.
+The plugin's signed Claude Code OAuth identity selects an exact 16-tool server profile. It includes durable memory, project context and explicit project creation, consolidated TODO operations, working-state checkpoints, pending decisions, and milestone/handoff events. It excludes Ledger, aggregate analytics, ChatGPT widgets, bulk TODO deletion, and hidden legacy aliases.
 
-This repository does not change the XMemo server or the separately reviewed Claude Connector listing.
+This profile is independent from the separately submitted Claude Directory Connector, whose 19-tool contract is unchanged. The Skill does not grant access to private server tools and never claims that an unavailable operation succeeded.
 
 ## Links
 

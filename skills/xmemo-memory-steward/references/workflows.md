@@ -9,7 +9,7 @@ Read only the playbook needed for the current request.
 3. Remove raw dialogue, repetition, transient details, logs, code dumps, and sensitive data.
 4. Search for existing versions of durable concepts.
 5. Preview the proposed batch when several writes or ambiguity are present.
-6. Route confirmed outcomes to `remember`, `update_memory`, TODO tools, or one labeled working-state memory.
+6. Route confirmed outcomes to `remember`, `update_memory`, `todo`, pending-decision tools, or `update_state`.
 7. Return a receipt with counts, categories, skipped content, and next action.
 
 ```text
@@ -47,11 +47,11 @@ Next action: <one exact step>
 Blocked by: <required input or dependency, if any>
 ```
 
-If a dedicated state tool is unavailable, search for the existing checkpoint and use `update_memory`; create it with `remember` only when absent.
+Write the checkpoint with `update_state` so a later session replaces stale working state instead of accumulating duplicate checkpoint memories.
 
 ## Resume Brief
 
-Build from `recall_context`, then reconcile with newer TODOs, activity, decisions, and evidence.
+Build from `recall_context`, then reconcile with project context, TODOs, pending decisions, durable memories, and current evidence.
 
 ```text
 Resume Brief

@@ -31,25 +31,22 @@ REQUIRED_FILES = {
 }
 
 EXPECTED_CLAUDE_TOOLS = {
-    "add_expense",
-    "analyze_memory_text",
-    "complete_memory_todo",
-    "create_memory_todo",
+    "create_pending_decision",
     "explain_memory",
     "forget",
     "get_mcp_identity",
-    "get_monthly_ledger_summary",
-    "list_ledger_transactions",
-    "list_memory_todos",
-    "memory_activity",
-    "memory_overview",
-    "memory_stats",
+    "get_project_context",
+    "project",
     "recall",
     "recall_context",
+    "record_event",
     "remember",
+    "resolve_decision",
     "restore_memory",
     "search_memory",
+    "todo",
     "update_memory",
+    "update_state",
 }
 
 FORBIDDEN_PUBLIC_TOOL_CLAIMS = {
@@ -59,6 +56,16 @@ FORBIDDEN_PUBLIC_TOOL_CLAIMS = {
     "open_ledger",
     "open_project_workspace",
     "open_todo_board",
+    "add_expense",
+    "analyze_memory_text",
+    "complete_memory_todo",
+    "create_memory_todo",
+    "get_monthly_ledger_summary",
+    "list_ledger_transactions",
+    "list_memory_todos",
+    "memory_activity",
+    "memory_overview",
+    "memory_stats",
 }
 
 SECRET_PATTERNS = {
@@ -195,7 +202,7 @@ def main() -> int:
     print("XMemo Claude plugin validation passed.")
     print(f"- manifest: {MANIFEST.relative_to(ROOT)}")
     print(f"- MCP endpoint: https://xmemo.dev/mcp")
-    print(f"- Claude public tool contract documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
+    print(f"- Claude Code plugin tool contract documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
     print("- credential scan: clean")
     return 0
 

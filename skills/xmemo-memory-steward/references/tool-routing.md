@@ -2,9 +2,9 @@
 
 Use only tools visible in the active XMemo MCP connection. This plugin does not expose private server tools, ChatGPT widget tools, or hidden legacy aliases.
 
-## Current Claude public tools
+## Signed Claude Code plugin tools
 
-The hosted Claude profile is expected to expose these 19 tool names at the time of the initial plugin release. The live connection remains authoritative.
+The plugin OAuth profile exposes exactly these 16 tools. The separately submitted Claude Directory Connector remains an independent 19-tool surface.
 
 ### Connection and memory lifecycle
 
@@ -24,41 +24,23 @@ The hosted Claude profile is expected to expose these 19 tool names at the time 
 | Quick recall | `recall` |
 | Exact or scoped search | `search_memory` |
 | Bounded multi-memory context or resume | `recall_context` |
-| Analyze supplied text for memory-worthiness | `analyze_memory_text` |
-| Recent activity | `memory_activity` |
-| Aggregate overview | `memory_overview` |
-| Aggregate statistics | `memory_stats` |
+| Bounded formal-project context | `get_project_context` |
 
-### TODOs
+### Projects, decisions, TODOs, and progress
 
 | Intent | Tool |
 | --- | --- |
-| Create an action item | `create_memory_todo` |
-| List action items | `list_memory_todos` |
-| Complete an action item | `complete_memory_todo` |
-
-### Ledger
-
-| Intent | Tool |
-| --- | --- |
-| Add an expense | `add_expense` |
-| List transactions | `list_ledger_transactions` |
-| Summarize the current month | `get_monthly_ledger_summary` |
-
-## Availability-aware workflow helpers
-
-Some XMemo profiles may expose dedicated tools such as `update_state`, `record_event`, or project helpers. Use them only when they are visible in the current MCP tool list and their input contract is clear.
-
-If a dedicated helper is unavailable:
-
-- **Checkpoint:** search for the existing scoped `Working state` memory, then update it; create one only if it does not exist.
-- **Handoff:** save or update one concise `Handoff` memory with source, verified status, artifacts, blocker, and exact next action.
-- **Milestone:** save a durable milestone only when its future retrieval value justifies it; do not create noisy event history.
-- **Project context:** use an existing formal project path only when known and authorized; do not infer project creation from a path-like phrase.
+| Create a formal project after an explicit request | `project` |
+| Save an unresolved choice | `create_pending_decision` |
+| Close an exact pending choice | `resolve_decision` |
+| Create, update, complete, or list actions | `todo` |
+| Save or replace scoped working state | `update_state` |
+| Record a milestone or handoff event | `record_event` |
 
 ## Safety rules
 
 - Never call a nonexistent tool or claim an unavailable capability succeeded.
-- Never route financial data through generic memory when Ledger tools are available.
+- `project` is limited to explicit formal project creation on this profile.
+- `todo` does not expose bulk deletion on this profile.
 - Never use hard deletion without the user's explicit irreversible-delete request and an exact target.
 - Never use one memory write to archive an entire raw conversation.
