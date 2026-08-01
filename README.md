@@ -13,7 +13,7 @@
 
   <p>
     <a href="https://github.com/yonro/xmemo-claude-plugin/actions/workflows/validate.yml"><img alt="Validation" src="https://img.shields.io/github/actions/workflow/status/yonro/xmemo-claude-plugin/validate.yml?branch=main&amp;style=flat-square&amp;logo=githubactions&amp;logoColor=white&amp;label=validation" /></a>
-    <img alt="Plugin version" src="https://img.shields.io/badge/plugin-v0.1.1-8B5CF6?style=flat-square" />
+    <img alt="Plugin version" src="https://img.shields.io/badge/plugin-v1.0.0-8B5CF6?style=flat-square" />
     <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/yonro/xmemo-claude-plugin?style=flat-square" /></a>
     <a href="https://github.com/yonro/xmemo-claude-plugin/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/yonro/xmemo-claude-plugin?style=flat-square&amp;logo=github" /></a>
   </p>
@@ -53,15 +53,16 @@ current conversation.
 |---|---|
 | Display name | `XMemo` |
 | Plugin ID | `xmemo` |
-| Skill | `/xmemo:memory-steward` |
-| Version | `0.1.0` |
-| Bundle | Claude Skill + hosted MCP configuration |
+| Skills | Eight professional workflows under `/xmemo:*` |
+| Automation | Fail-open lifecycle checkpoint Hook |
+| Version | `1.0.0` |
+| Bundle | Claude Skill suite + checkpoint Hook + hosted MCP configuration |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 with Dynamic Client Registration |
 | Requested scopes | `memory:read memory:write` |
 | Tool profile | Signed Claude Code profile, exactly 16 tools |
 | MCP resources | None |
-| Local memory storage | None in this repository |
+| Local Hook state | Bounded metadata only under `CLAUDE_PLUGIN_DATA`; no transcript content |
 | License | MIT |
 
 ### What it enables
@@ -74,10 +75,29 @@ current conversation.
   against saved decisions and evidence.
 - **Working continuity** — resume from the latest verified state instead of
   replaying chat history.
+- **Automatic checkpoint guard** — detect material implementation activity,
+  completed tasks, context compaction, and interrupted sessions, then ask Claude
+  to preserve one verified checkpoint at the right boundary.
 - **Cross-agent handoff** — preserve provenance, blockers, remaining work, and
   one exact next action for another compatible agent.
 - **User-controlled lifecycle** — search, update, soft-delete, restore, and
   explicitly hard-delete eligible memories.
+
+### Professional Skill suite
+
+Each Skill has a distinct trigger and evidence contract. Claude can select one
+from natural language, or the user can invoke the namespaced command directly.
+
+| Skill | Professional workflow |
+|---|---|
+| [`/xmemo:brainstorm`](skills/brainstorm/SKILL.md) | Recall constraints, generate distinct options, challenge assumptions, converge, and preserve only approved outcomes |
+| [`/xmemo:plan-project`](skills/plan-project/SKILL.md) | Design evidence-gated `PROJECT_PLAN.md` and `EXECUTION_PLAN.md` artifacts from XMemo context and the live project |
+| [`/xmemo:review-plan`](skills/review-plan/SKILL.md) | Review a proposal against saved decisions and return a formal verdict plus acceptance gate |
+| [`/xmemo:audit-progress`](skills/audit-progress/SKILL.md) | Separate verified work from partial, claimed, stale, conflicting, or blocked progress and optionally write a formal Markdown audit |
+| [`/xmemo:distill-session`](skills/distill-session/SKILL.md) | Extract retrieval-ready decisions, context, TODOs, unresolved items, and checkpoints without archiving the transcript |
+| [`/xmemo:resume-work`](skills/resume-work/SKILL.md) | Reconcile the latest checkpoint with current evidence and continue from one exact next action |
+| [`/xmemo:handoff-work`](skills/handoff-work/SKILL.md) | Prepare or receive evidence-based handoffs across Claude sessions and compatible agents |
+| [`/xmemo:memory-steward`](skills/memory-steward/SKILL.md) | Coordinate mixed workflows and memory lifecycle operations under the shared safety policy |
 
 ## Quick start
 
@@ -85,7 +105,9 @@ current conversation.
 
 Prerequisites:
 
-- Claude Code 2.1.143 or later.
+- A current Claude Code release with plugin lifecycle Hooks and `PostToolBatch`.
+- Node.js available as `node`; the official exec-form Hook pattern works across
+  Windows, macOS, and Linux.
 - An XMemo account.
 - A browser for the OAuth authorization flow.
 
@@ -101,7 +123,8 @@ Inside Claude Code:
 1. Run `/mcp` and select XMemo.
 2. Complete browser-based OAuth authorization for `memory:read` and
    `memory:write`.
-3. Invoke `/xmemo:memory-steward`, or ask naturally:
+3. Invoke a focused workflow such as `/xmemo:resume-work`, use
+   `/xmemo:memory-steward` for mixed memory work, or ask naturally:
 
 ```text
 Bring me up to speed on this project using XMemo. Show the latest verified
@@ -116,8 +139,8 @@ secret, reviewer credential, or bearer token belongs in the package.
 
 Marketplace releases use semantic versions from
 `.claude-plugin/plugin.json`. Because an explicit version pins Claude Code's
-plugin cache, every published update must increment that value. The initial
-release is `v0.1.0`; Git tags and GitHub Releases use the same version.
+plugin cache, every published update must increment that value. Git tags and
+GitHub Releases use the same version; the first stable public release is `v1.0.0`.
 
 ## Architecture
 
@@ -125,25 +148,28 @@ release is `v0.1.0`; Git tags and GitHub Releases use the same version.
   <img src="https://cdn.jsdelivr.net/gh/yonro/xmemo-claude-plugin@main/assets/claude-memory-flow.png" alt="XMemo Claude plugin architecture" width="980" />
 </p>
 
-The plugin has two complementary components:
+The plugin has three complementary components:
 
 | Component | Responsibility |
 |---|---|
-| `skills/memory-steward/SKILL.md` | Teaches Claude when to recall, distill, checkpoint, review, resume, and hand off work |
+| `skills/*/SKILL.md` | Eight focused professional workflows sharing one XMemo safety and routing contract |
+| `hooks/hooks.json` + `scripts/checkpoint-hook.js` | Detects checkpoint boundaries and interrupted work without reading or persisting transcripts |
 | `.mcp.json` | Declares the hosted XMemo endpoint and pins the minimum OAuth scopes |
 
 ### Data path
 
-1. Claude loads the `memory-steward` Skill when the request benefits from
-   durable context or the user invokes it directly.
-2. Claude Code connects to `https://xmemo.dev/mcp` over HTTPS.
-3. The server advertises OAuth metadata and Claude Code performs Dynamic Client
+1. Claude loads the focused Skill whose description matches the workflow, or
+   `memory-steward` for mixed memory and lifecycle work.
+2. The local lifecycle Hook records only bounded activity metadata under
+   `CLAUDE_PLUGIN_DATA` and asks Claude to checkpoint only at a material boundary.
+3. Claude Code connects to `https://xmemo.dev/mcp` over HTTPS.
+4. The server advertises OAuth metadata and Claude Code performs Dynamic Client
    Registration plus browser authorization.
-4. The signed OAuth client identity selects XMemo's isolated 16-tool Claude
+5. The signed OAuth client identity selects XMemo's isolated 16-tool Claude
    Code profile.
-5. Each tool reads or writes only data authorized for the signed-in XMemo
+6. Each tool reads or writes only data authorized for the signed-in XMemo
    account and requested scope.
-6. Claude reports the useful result without exposing tokens, internal traces,
+7. Claude reports the useful result without exposing tokens, internal traces,
    or unnecessary identifiers.
 
 The package contains no XMemo service implementation, production credentials,
@@ -165,6 +191,26 @@ private memories, deployment scripts, or internal runbooks.
 3. Record unresolved choices as pending decisions.
 4. Maintain the active objective, verified state, blocker, and next action.
 5. Update existing memory instead of creating near-duplicates.
+
+### Automatic checkpoint guard
+
+The Hook does not write a memory after every tool call. It marks local activity
+and asks Claude to continue once when one of these boundaries is reached:
+
+- a tracked task is completed;
+- context is about to be compacted;
+- verified implementation work has reached a material stage;
+- sustained work crosses the activity or time threshold;
+- the previous session ended or failed with unsaved work.
+
+Claude then decides from the current verified context whether `update_state` is
+warranted. A successful `update_state` clears the pending marker. `record_event`
+remains reserved for significant milestones and handoffs. If XMemo is unavailable
+or no durable change exists, the Hook fails open and never fabricates a save.
+
+The Hook never opens `transcript_path`, does not inspect prompt, message, or tool
+response content, and never persists source contents, credentials, or raw
+transcripts.
 
 ### At handoff
 
@@ -195,7 +241,8 @@ aliases. The separately submitted Claude Directory Connector has an independent
 | Capability | Included | Boundary |
 |---|:---:|---|
 | Hosted XMemo MCP connection | Yes | Requires user OAuth authorization |
-| Memory workflow Skill | Yes | Activates only for relevant requests |
+| Professional memory Skill suite | Yes | Eight focused workflows activate only for relevant requests |
+| Automatic checkpoint guard | Yes | Lifecycle metadata only; semantic writes remain Skill-governed |
 | Recall and search | Yes | Limited to the signed-in account and scopes |
 | Durable writes and working state | Yes | Performed only when requested by the user or active workflow |
 | Project creation | Yes | Only after an explicit formal-project request |
@@ -218,7 +265,20 @@ assets/claude-memory-flow.png              Rendered README architecture diagram
 assets/claude-memory-flow.svg              Editable architecture diagram source
 examples/workflow-prompts.md               Synthetic evaluation prompts
 scripts/validate-package.py                Zero-dependency package validator
-skills/memory-steward/SKILL.md             Memory workflow and safety policy
+scripts/checkpoint-hook.js                 Cross-platform checkpoint lifecycle coordinator
+scripts/test-checkpoint-hook.js            Deterministic Hook regression tests
+hooks/hooks.json                           Claude Code lifecycle Hook configuration
+skills/brainstorm/SKILL.md                 Memory-grounded ideation and convergence
+skills/plan-project/SKILL.md               Project and execution-plan design
+skills/review-plan/SKILL.md                Formal plan review and acceptance gates
+skills/audit-progress/SKILL.md             Evidence-based progress audit
+skills/distill-session/SKILL.md            Important-session distillation
+skills/resume-work/SKILL.md                Deterministic recovery and continuation
+skills/handoff-work/SKILL.md               Cross-session and cross-agent handoff
+skills/memory-steward/SKILL.md             Mixed workflow and lifecycle safety policy
+skills/plan-project/assets/                Project and execution-plan templates
+skills/plan-project/references/            Plan quality and evidence gates
+skills/audit-progress/assets/              Development-progress audit template
 skills/memory-steward/references/          Tool routing and focused playbooks
 PRIVACY.md                                 Data-flow and user-control summary
 SECURITY.md                                Credential and review boundaries
@@ -242,9 +302,16 @@ It verifies:
 - manifest identity, display name, SemVer, and package paths;
 - hosted endpoint and exact OAuth scope pin;
 - the signed 16-tool routing contract;
-- Skill frontmatter and referenced playbooks;
+- the exact eight-Skill suite, frontmatter, workflow markers, templates, and referenced playbooks;
 - required public documents and parseable assets;
+- exact Hook lifecycle events, exec-form command safety, and no transcript/network access;
 - common committed-secret patterns.
+
+Run the deterministic Hook tests:
+
+```powershell
+node scripts/test-checkpoint-hook.js
+```
 
 Then run Claude Code's official strict validator:
 
@@ -262,6 +329,9 @@ Synthetic evaluation prompts are maintained in
   cookie, reviewer credential, or private memory.
 - The plugin pins `memory:read memory:write` rather than relying on broader
   discovered scopes.
+- The Hook uses the official exec-form `node` pattern, is fail-open, opens no
+  network connection, spawns no subprocess, and keeps only bounded local state.
+- The Hook does not inspect or store Claude transcripts or tool responses.
 - Retrieved memory is treated as context to verify, not unquestionable truth.
 - Hard deletion is never inferred from ambiguous language.
 - Demos and review evidence must use synthetic data.
@@ -284,7 +354,8 @@ This repository is prepared for public validation and future official plugin
 review. Release claims remain evidence-based:
 
 - plugin manifest: present;
-- Skill bundle: present;
+- eight-Skill professional workflow bundle: present;
+- seven-event checkpoint Hook and regression tests: present;
 - OAuth MCP configuration: present;
 - isolated 16-tool server contract: verified;
 - MCP resources and widget UI: absent;
@@ -300,8 +371,8 @@ review. Release claims remain evidence-based:
 | Runtime | Claude Code |
 | Plugin ID | `xmemo` |
 | Display name | `XMemo` |
-| Skill command | `/xmemo:memory-steward` |
-| Role | Skill + hosted MCP |
+| Skill commands | `/xmemo:brainstorm`, `/xmemo:plan-project`, `/xmemo:review-plan`, `/xmemo:audit-progress`, `/xmemo:distill-session`, `/xmemo:resume-work`, `/xmemo:handoff-work`, `/xmemo:memory-steward` |
+| Role | Professional Skill suite + checkpoint Hook + hosted MCP |
 | Service | `https://xmemo.dev` |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 + Dynamic Client Registration |

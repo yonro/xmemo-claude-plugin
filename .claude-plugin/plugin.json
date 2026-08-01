@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "xmemo",
   "displayName": "XMemo",
-  "version": "0.1.1",
-  "description": "Durable project context, decisions, TODOs, checkpoints, and handoffs across Claude sessions and compatible AI agents.",
+  "version": "1.0.0",
+  "description": "Professional XMemo workflows and lifecycle checkpoint automation for planning, review, progress recovery, and cross-agent handoffs in Claude.",
   "author": {
     "name": "Yonro",
     "email": "support@xmemo.dev",

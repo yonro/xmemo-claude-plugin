@@ -26,3 +26,5 @@ jobs:
         run: claude plugin validate . --strict
       - name: Validate package
         run: python scripts/validate-package.py
+      - name: Test checkpoint hooks
+        run: node scripts/test-checkpoint-hook.js

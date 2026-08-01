@@ -9,6 +9,22 @@ Operate XMemo as a user-owned continuity system, not a transcript archive. Follo
 
 **scope → recall → act → distill → checkpoint → receipt**
 
+Use this Skill for mixed memory work, lifecycle operations, or requests spanning
+several workflows. Prefer a focused companion Skill when one workflow dominates:
+
+| Focused workflow | Skill command |
+| --- | --- |
+| Generate and converge ideas against saved context | `/xmemo:brainstorm` |
+| Design project and execution-plan Markdown | `/xmemo:plan-project` |
+| Review a proposed plan against durable decisions | `/xmemo:review-plan` |
+| Audit progress claims against plans and evidence | `/xmemo:audit-progress` |
+| Distill an important session into durable outcomes | `/xmemo:distill-session` |
+| Recover verified state and continue work | `/xmemo:resume-work` |
+| Prepare or receive a cross-agent handoff | `/xmemo:handoff-work` |
+
+The focused Skills share this Skill's tool contract and lifecycle safety rules;
+they do not expose additional MCP tools.
+
 ## 1. Establish intent and scope
 
 Identify the requested outcome before calling a tool:

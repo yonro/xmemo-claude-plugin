@@ -14,24 +14,40 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 MCP_CONFIG = ROOT / ".mcp.json"
-SKILL = ROOT / "skills" / "memory-steward" / "SKILL.md"
+HOOK_CONFIG = ROOT / "hooks" / "hooks.json"
+CHECKPOINT_HOOK = ROOT / "scripts" / "checkpoint-hook.js"
+CHECKPOINT_HOOK_TEST = ROOT / "scripts" / "test-checkpoint-hook.js"
+SKILLS_ROOT = ROOT / "skills"
 
-REQUIRED_FILES = {
-    MANIFEST,
-    MCP_CONFIG,
-    SKILL,
-    ROOT / "README.md",
-    ROOT / "PRIVACY.md",
-    ROOT / "SECURITY.md",
-    ROOT / "LICENSE",
-    ROOT / "CHANGELOG.md",
-    ROOT / "assets" / "icon.png",
-    ROOT / "assets" / "claude-memory-flow.png",
-    ROOT / "assets" / "claude-memory-flow.svg",
-    ROOT / "skills" / "memory-steward" / "references" / "memory-policy.md",
-    ROOT / "skills" / "memory-steward" / "references" / "review-playbooks.md",
-    ROOT / "skills" / "memory-steward" / "references" / "tool-routing.md",
-    ROOT / "skills" / "memory-steward" / "references" / "workflows.md",
+EXPECTED_HOOK_EVENTS = {
+    "SessionStart",
+    "PostToolBatch",
+    "TaskCompleted",
+    "PreCompact",
+    "Stop",
+    "StopFailure",
+    "SessionEnd",
+}
+
+EXPECTED_SKILLS = {
+    "audit-progress",
+    "brainstorm",
+    "distill-session",
+    "handoff-work",
+    "memory-steward",
+    "plan-project",
+    "resume-work",
+    "review-plan",
+}
+
+FOCUSED_SKILL_MARKERS = {
+    "audit-progress": {"verified", "claimed", "update_state"},
+    "brainstorm": {"diverge", "converge", "remember"},
+    "distill-session": {"raw transcript", "preview", "update_memory"},
+    "handoff-work": {"provenance", "exact next action", "record_event"},
+    "plan-project": {"PROJECT_PLAN.md", "EXECUTION_PLAN.md", "acceptance gate"},
+    "resume-work": {"Resume Brief", "reconcile", "get_project_context"},
+    "review-plan": {"Verdict", "acceptance gate", "approved"},
 }
 
 EXPECTED_CLAUDE_TOOLS = {
@@ -71,6 +87,31 @@ FORBIDDEN_PUBLIC_TOOL_CLAIMS = {
     "memory_overview",
     "memory_stats",
 }
+
+REQUIRED_FILES = {
+    MANIFEST,
+    MCP_CONFIG,
+    HOOK_CONFIG,
+    CHECKPOINT_HOOK,
+    CHECKPOINT_HOOK_TEST,
+    ROOT / "README.md",
+    ROOT / "PRIVACY.md",
+    ROOT / "SECURITY.md",
+    ROOT / "LICENSE",
+    ROOT / "CHANGELOG.md",
+    ROOT / "assets" / "icon.png",
+    ROOT / "assets" / "claude-memory-flow.png",
+    ROOT / "assets" / "claude-memory-flow.svg",
+    ROOT / "examples" / "workflow-prompts.md",
+    ROOT / "skills" / "audit-progress" / "assets" / "progress-audit-template.md",
+    ROOT / "skills" / "plan-project" / "assets" / "execution-plan-template.md",
+    ROOT / "skills" / "plan-project" / "assets" / "project-plan-template.md",
+    ROOT / "skills" / "plan-project" / "references" / "plan-quality-gates.md",
+    ROOT / "skills" / "memory-steward" / "references" / "memory-policy.md",
+    ROOT / "skills" / "memory-steward" / "references" / "review-playbooks.md",
+    ROOT / "skills" / "memory-steward" / "references" / "tool-routing.md",
+    ROOT / "skills" / "memory-steward" / "references" / "workflows.md",
+} | {SKILLS_ROOT / name / "SKILL.md" for name in EXPECTED_SKILLS}
 
 SECRET_PATTERNS = {
     "OpenAI-style API key": re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
@@ -139,43 +180,143 @@ def validate_mcp(errors: list[str]) -> None:
             fail(errors, f".mcp.json must not contain credential field/text {forbidden!r}")
 
 
-def validate_skill(errors: list[str]) -> None:
-    text = SKILL.read_text(encoding="utf-8")
+def validate_hooks(errors: list[str]) -> None:
+    config = load_json(HOOK_CONFIG, errors)
+    hooks = config.get("hooks", {})
+    if set(hooks) != EXPECTED_HOOK_EVENTS:
+        fail(
+            errors,
+            "hooks/hooks.json must contain the exact checkpoint lifecycle events; "
+            f"expected={sorted(EXPECTED_HOOK_EVENTS)}, actual={sorted(hooks)}",
+        )
+
+    for event, groups in hooks.items():
+        if not isinstance(groups, list) or not groups:
+            fail(errors, f"hooks/hooks.json {event} must contain a non-empty group list")
+            continue
+        for group in groups:
+            handlers = group.get("hooks", []) if isinstance(group, dict) else []
+            if not handlers:
+                fail(errors, f"hooks/hooks.json {event} group requires handlers")
+                continue
+            for handler in handlers:
+                if handler.get("type") != "command":
+                    fail(errors, f"hooks/hooks.json {event} must use command hooks")
+                if handler.get("command") != "node":
+                    fail(errors, f"hooks/hooks.json {event} must execute with node")
+                if handler.get("args") != [
+                    "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint-hook.js"
+                ]:
+                    fail(
+                        errors,
+                        f"hooks/hooks.json {event} must use exec-form plugin-root args",
+                    )
+
+    source = CHECKPOINT_HOOK.read_text(encoding="utf-8")
+    forbidden = (
+        ("raw transcript access", "transcript_path"),
+        ("network client", "node:http"),
+        ("network client", "node:https"),
+        ("child process execution", "node:child_process"),
+    )
+    for label, marker in forbidden:
+        if marker in source:
+            fail(errors, f"checkpoint-hook.js contains forbidden {label}: {marker}")
+    for marker in (
+        "stop_hook_active",
+        "CLAUDE_PLUGIN_DATA",
+        "mcp__(?:plugin_xmemo_xmemo|xmemo)__update_state",
+        "raw transcripts",
+    ):
+        if marker not in source:
+            fail(errors, f"checkpoint-hook.js is missing safety marker {marker!r}")
+
+
+def parse_frontmatter(path: Path, errors: list[str]) -> tuple[dict[str, str], str]:
+    text = path.read_text(encoding="utf-8")
     match = re.match(r"\A---\r?\n(.*?)\r?\n---\r?\n", text, re.DOTALL)
     if not match:
-        fail(errors, "SKILL.md must start with YAML frontmatter")
-        return
+        fail(errors, f"{path.relative_to(ROOT)} must start with YAML frontmatter")
+        return {}, text
 
-    frontmatter = match.group(1)
-    if not re.search(r"(?m)^name:\s*memory-steward\s*$", frontmatter):
-        fail(errors, "SKILL.md frontmatter name must be memory-steward")
-    if not re.search(r"(?m)^description:\s*\S", frontmatter):
-        fail(errors, "SKILL.md frontmatter requires a non-empty description")
+    fields: dict[str, str] = {}
+    for line in match.group(1).splitlines():
+        key, separator, value = line.partition(":")
+        if not separator or not key.strip() or not value.strip():
+            fail(errors, f"Invalid frontmatter line in {path.relative_to(ROOT)}: {line!r}")
+            continue
+        fields[key.strip()] = value.strip()
+    return fields, text
+
+
+def validate_skills(errors: list[str]) -> None:
+    actual_skills = {
+        path.parent.name for path in SKILLS_ROOT.glob("*/SKILL.md") if path.is_file()
+    }
+    if actual_skills != EXPECTED_SKILLS:
+        fail(
+            errors,
+            "skills/ must contain the exact professional Skill suite; "
+            f"expected={sorted(EXPECTED_SKILLS)}, actual={sorted(actual_skills)}",
+        )
+
+    combined_skill_text = ""
+    for name in sorted(EXPECTED_SKILLS):
+        path = SKILLS_ROOT / name / "SKILL.md"
+        fields, text = parse_frontmatter(path, errors)
+        combined_skill_text += "\n" + text
+
+        if set(fields) != {"name", "description"}:
+            fail(
+                errors,
+                f"{path.relative_to(ROOT)} frontmatter must contain only name and description",
+            )
+        if fields.get("name") != name:
+            fail(errors, f"{path.relative_to(ROOT)} frontmatter name must be {name}")
+        if not fields.get("description"):
+            fail(errors, f"{path.relative_to(ROOT)} requires a non-empty description")
+        if re.search(r"(?mi)^\s*(?:[-*]\s*)?TODO(?:\s*[:\[])\s*", text):
+            fail(errors, f"{path.relative_to(ROOT)} contains an unfinished TODO marker")
+
+        for reference in re.findall(r"`((?:\.\./|references/)[^`]+\.md)`", text):
+            resolved = (path.parent / reference).resolve()
+            if not resolved.is_file():
+                fail(
+                    errors,
+                    f"{path.relative_to(ROOT)} references missing file: {reference}",
+                )
+
+        for marker in FOCUSED_SKILL_MARKERS.get(name, set()):
+            if marker.lower() not in text.lower():
+                fail(errors, f"{path.relative_to(ROOT)} is missing workflow marker {marker!r}")
 
     routing = (
-        ROOT
-        / "skills"
-        / "memory-steward"
-        / "references"
-        / "tool-routing.md"
+        SKILLS_ROOT / "memory-steward" / "references" / "tool-routing.md"
     ).read_text(encoding="utf-8")
     routed = set(re.findall(r"`([a-z][a-z0-9_]*)`", routing))
     missing = EXPECTED_CLAUDE_TOOLS - routed
     if missing:
         fail(errors, f"tool-routing.md is missing Claude tools: {sorted(missing)}")
 
-    forbidden_claims = FORBIDDEN_PUBLIC_TOOL_CLAIMS & routed
-    if forbidden_claims:
+    forbidden_routing_claims = FORBIDDEN_PUBLIC_TOOL_CLAIMS & routed
+    if forbidden_routing_claims:
         fail(
             errors,
             "tool-routing.md must not advertise hidden/retired tools: "
-            f"{sorted(forbidden_claims)}",
+            f"{sorted(forbidden_routing_claims)}",
         )
 
-    for reference in re.findall(r"`(references/[^`]+\.md)`", text):
-        path = SKILL.parent / reference
-        if not path.is_file():
-            fail(errors, f"SKILL.md references missing file: {reference}")
+    forbidden_skill_claims = {
+        name
+        for name in FORBIDDEN_PUBLIC_TOOL_CLAIMS
+        if re.search(rf"`{re.escape(name)}`", combined_skill_text)
+    }
+    if forbidden_skill_claims:
+        fail(
+            errors,
+            "Skill suite must not route to hidden/retired tools: "
+            f"{sorted(forbidden_skill_claims)}",
+        )
 
 
 def validate_assets_and_readme(errors: list[str]) -> None:
@@ -214,7 +355,9 @@ def validate_assets_and_readme(errors: list[str]) -> None:
         "PRIVACY.md",
         "SECURITY.md",
         "CHANGELOG.md",
-    }
+        "hooks/hooks.json",
+        "scripts/checkpoint-hook.js",
+    } | {f"skills/{name}/SKILL.md" for name in EXPECTED_SKILLS}
     for reference in sorted(required_readme_references):
         if reference not in readme:
             fail(errors, f"README.md is missing required reference: {reference}")
@@ -225,7 +368,7 @@ def validate_assets_and_readme(errors: list[str]) -> None:
 
 
 def validate_secrets(errors: list[str]) -> None:
-    text_extensions = {".json", ".md", ".py", ".yml", ".yaml"}
+    text_extensions = {".json", ".js", ".md", ".py", ".yml", ".yaml"}
     for path in ROOT.rglob("*"):
         if ".git" in path.parts or not path.is_file() or path.suffix not in text_extensions:
             continue
@@ -245,7 +388,8 @@ def main() -> int:
     if not errors:
         validate_manifest(errors)
         validate_mcp(errors)
-        validate_skill(errors)
+        validate_hooks(errors)
+        validate_skills(errors)
         validate_assets_and_readme(errors)
         validate_secrets(errors)
 
@@ -257,7 +401,9 @@ def main() -> int:
 
     print("XMemo Claude plugin validation passed.")
     print(f"- manifest: {MANIFEST.relative_to(ROOT)}")
-    print(f"- MCP endpoint: https://xmemo.dev/mcp")
+    print("- MCP endpoint: https://xmemo.dev/mcp")
+    print(f"- professional Skill suite documented: {len(EXPECTED_SKILLS)} skills")
+    print(f"- checkpoint lifecycle hooks documented: {len(EXPECTED_HOOK_EVENTS)} events")
     print(f"- Claude Code plugin tool contract documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
     print("- credential scan: clean")
     return 0
