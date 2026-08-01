@@ -2,14 +2,14 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "xmemo",
   "displayName": "XMemo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Durable project context, decisions, TODOs, checkpoints, and handoffs across Claude sessions and compatible AI agents.",
   "author": {
     "name": "Yonro",
     "email": "support@xmemo.dev",
     "url": "https://www.yonro.co.jp"
   },
-  "homepage": "https://xmemo.dev/product/mcp",
+  "homepage": "https://xmemo.dev/integrations/claude",
   "repository": "https://github.com/yonro/xmemo-claude-plugin",
   "license": "MIT",
   "keywords": [

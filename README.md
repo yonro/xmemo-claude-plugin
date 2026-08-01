@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://xmemo.dev">
+  <a href="https://xmemo.dev/integrations/claude">
     <img src="https://cdn.jsdelivr.net/gh/yonro/xmemo-claude-plugin@main/assets/icon.png" alt="XMemo" width="112" />
   </a>
 
@@ -13,7 +13,7 @@
 
   <p>
     <a href="https://github.com/yonro/xmemo-claude-plugin/actions/workflows/validate.yml"><img alt="Validation" src="https://img.shields.io/github/actions/workflow/status/yonro/xmemo-claude-plugin/validate.yml?branch=main&amp;style=flat-square&amp;logo=githubactions&amp;logoColor=white&amp;label=validation" /></a>
-    <img alt="Plugin version" src="https://img.shields.io/badge/plugin-v0.1.0-8B5CF6?style=flat-square" />
+    <img alt="Plugin version" src="https://img.shields.io/badge/plugin-v0.1.1-8B5CF6?style=flat-square" />
     <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/yonro/xmemo-claude-plugin?style=flat-square" /></a>
     <a href="https://github.com/yonro/xmemo-claude-plugin/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/yonro/xmemo-claude-plugin?style=flat-square&amp;logo=github" /></a>
   </p>

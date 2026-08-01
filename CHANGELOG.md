@@ -2,6 +2,10 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 0.1.1 - 2026-08-01
+
+- Update plugin manifest homepage to official `https://xmemo.dev/integrations/claude` landing page.
+
 ## 0.1.0 - 2026-08-01
 
 - Add the initial Claude Plugin manifest and hosted XMemo OAuth MCP configuration.
