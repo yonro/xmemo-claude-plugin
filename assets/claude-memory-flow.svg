@@ -51,8 +51,7 @@
   <text x="652" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Dynamic Client Registration</text>
   <text x="652" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">memory:read · memory:write</text>
 
-  <rect x="927" y="162" width="46" height="46" rx="14" fill="url(#brand)"/>
-  <path d="M939 196v-22l11 12 11-12v22" fill="none" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <image href="icon.png" x="925" y="160" width="50" height="50" preserveAspectRatio="xMidYMid meet"/>
   <text x="927" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">XMemo</text>
   <text x="927" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">16 focused tools · 0 resources</text>
   <text x="927" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Durable authorized context</text>

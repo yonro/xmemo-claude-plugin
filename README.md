@@ -3,7 +3,7 @@
     <img src="https://cdn.jsdelivr.net/gh/yonro/xmemo-claude-plugin@main/assets/icon.png" alt="XMemo" width="112" />
   </a>
 
-  <h1>XMemo</h1>
+  <h1>XMemo for Claude</h1>
 
   <p><strong>Durable project memory and cross-agent continuity for Claude.</strong></p>
   <p>
@@ -115,7 +115,7 @@ secret, reviewer credential, or bearer token belongs in the package.
 ## Architecture
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/yonro/xmemo-claude-plugin@main/assets/claude-memory-flow.svg" alt="XMemo Claude plugin architecture" width="980" />
+  <img src="https://cdn.jsdelivr.net/gh/yonro/xmemo-claude-plugin@main/assets/claude-memory-flow.png" alt="XMemo Claude plugin architecture" width="980" />
 </p>
 
 The plugin has two complementary components:
@@ -207,7 +207,8 @@ aliases. The separately submitted Claude Directory Connector has an independent
 .github/workflows/validate.yml             Deterministic package validation
 .mcp.json                                  Hosted XMemo OAuth MCP connection
 assets/icon.png                            Official XMemo icon
-assets/claude-memory-flow.svg              README architecture diagram
+assets/claude-memory-flow.png              Rendered README architecture diagram
+assets/claude-memory-flow.svg              Editable architecture diagram source
 examples/workflow-prompts.md               Synthetic evaluation prompts
 scripts/validate-package.py                Zero-dependency package validator
 skills/memory-steward/SKILL.md             Memory workflow and safety policy

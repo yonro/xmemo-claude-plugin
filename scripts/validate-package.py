@@ -26,6 +26,7 @@ REQUIRED_FILES = {
     ROOT / "LICENSE",
     ROOT / "CHANGELOG.md",
     ROOT / "assets" / "icon.png",
+    ROOT / "assets" / "claude-memory-flow.png",
     ROOT / "assets" / "claude-memory-flow.svg",
     ROOT / "skills" / "memory-steward" / "references" / "memory-policy.md",
     ROOT / "skills" / "memory-steward" / "references" / "review-playbooks.md",
@@ -175,6 +176,7 @@ def validate_skill(errors: list[str]) -> None:
 def validate_assets_and_readme(errors: list[str]) -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     icon = ROOT / "assets" / "icon.png"
+    diagram_png = ROOT / "assets" / "claude-memory-flow.png"
     diagram = ROOT / "assets" / "claude-memory-flow.svg"
 
     png = icon.read_bytes()
@@ -187,6 +189,14 @@ def validate_assets_and_readme(errors: list[str]) -> None:
         if width != height:
             fail(errors, "assets/icon.png must be square")
 
+    rendered_diagram = diagram_png.read_bytes()
+    if rendered_diagram[:8] != b"\x89PNG\r\n\x1a\n" or len(rendered_diagram) < 24:
+        fail(errors, "assets/claude-memory-flow.png must be a valid PNG")
+    else:
+        width, height = struct.unpack(">II", rendered_diagram[16:24])
+        if (width, height) != (1200, 420):
+            fail(errors, "assets/claude-memory-flow.png must be 1200 x 420 px")
+
     try:
         ET.parse(diagram)
     except (OSError, ET.ParseError) as exc:
@@ -194,7 +204,7 @@ def validate_assets_and_readme(errors: list[str]) -> None:
 
     required_readme_references = {
         "assets/icon.png",
-        "assets/claude-memory-flow.svg",
+        "assets/claude-memory-flow.png",
         "examples/workflow-prompts.md",
         "PRIVACY.md",
         "SECURITY.md",
