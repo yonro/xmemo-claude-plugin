@@ -91,9 +91,9 @@ Prerequisites:
 
 Clone and launch the plugin:
 
-```powershell
+```bash
 git clone https://github.com/yonro/xmemo-claude-plugin.git
-claude --plugin-dir D:\repos\xmemo-claude-plugin
+claude --plugin-dir ./xmemo-claude-plugin
 ```
 
 Inside Claude Code:
@@ -111,6 +111,13 @@ state, active decisions, open TODOs, blocker, and exact next action.
 After local plugin changes, run `/reload-plugins` or restart Claude Code.
 Claude Code manages OAuth tokens outside this repository; no API key, client
 secret, reviewer credential, or bearer token belongs in the package.
+
+### Versioning
+
+Marketplace releases use semantic versions from
+`.claude-plugin/plugin.json`. Because an explicit version pins Claude Code's
+plugin cache, every published update must increment that value. The initial
+release is `v0.1.0`; Git tags and GitHub Releases use the same version.
 
 ## Architecture
 

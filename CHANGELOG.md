@@ -10,4 +10,6 @@ All notable changes to the XMemo Claude plugin are documented here.
 - Add a review-ready README with OAuth architecture, exact capability boundaries, and agent-readable metadata.
 - Add a public architecture diagram and validate all README assets deterministically.
 - Add offline validation and GitHub Actions package checks.
+- Run Anthropic's official `claude plugin validate . --strict` check in CI.
+- Add the official manifest schema and document cross-platform local loading and release versioning.
 - Align the package with a signed, isolated 16-tool Claude Code profile while preserving the separate 19-tool Claude Directory Connector contract.

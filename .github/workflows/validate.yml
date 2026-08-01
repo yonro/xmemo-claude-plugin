@@ -17,5 +17,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Claude Code
+        run: npm install --global @anthropic-ai/claude-code
+      - name: Validate with Claude Code
+        run: claude plugin validate . --strict
       - name: Validate package
         run: python scripts/validate-package.py

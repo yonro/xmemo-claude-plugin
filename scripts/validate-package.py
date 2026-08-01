@@ -99,9 +99,9 @@ def load_json(path: Path, errors: list[str]) -> dict:
 def validate_manifest(errors: list[str]) -> None:
     manifest = load_json(MANIFEST, errors)
     expected = {
+        "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
         "name": "xmemo",
         "displayName": "XMemo",
-        "version": "0.1.0",
         "license": "MIT",
         "skills": "./skills/",
         "mcpServers": "./.mcp.json",
@@ -112,6 +112,11 @@ def validate_manifest(errors: list[str]) -> None:
 
     if not re.fullmatch(r"\d+\.\d+\.\d+", str(manifest.get("version", ""))):
         fail(errors, "plugin.json version must be semantic x.y.z")
+
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    version = str(manifest.get("version", ""))
+    if not re.search(rf"(?m)^## {re.escape(version)}(?:\s|$)", changelog):
+        fail(errors, f"CHANGELOG.md must contain a release heading for {version}")
 
     author = manifest.get("author")
     if not isinstance(author, dict) or author.get("email") != "support@xmemo.dev":
