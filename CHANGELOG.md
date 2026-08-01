@@ -12,6 +12,7 @@ All notable changes to the XMemo Claude plugin are documented here.
 - Keep `memory-steward` as the mixed-workflow and lifecycle safety entry point.
 - Share one exact 16-tool Claude profile across every Skill without adding server tools or MCP resources.
 - Extend package validation and synthetic workflow prompts for the complete Skill suite.
+- Add a tag-driven GitHub Release workflow that validates the package, verifies the manifest version, and publishes a ZIP with a SHA-256 checksum.
 - Establish this complete eight-Skill package as the first stable public release.
 
 ## 0.1.1 - 2026-08-01

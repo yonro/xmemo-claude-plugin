@@ -1,0 +1,5 @@
+.github export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+scripts/test-checkpoint-hook.js export-ignore
+scripts/validate-package.py export-ignore
