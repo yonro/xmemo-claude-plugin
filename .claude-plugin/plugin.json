@@ -1,0 +1,24 @@
+{
+  "name": "xmemo-claude-plugin",
+  "displayName": "XMemo for Claude",
+  "version": "0.1.0",
+  "description": "Durable, user-controlled project memory and handoffs for Claude.",
+  "author": {
+    "name": "Yonro",
+    "email": "support@xmemo.dev",
+    "url": "https://xmemo.dev"
+  },
+  "homepage": "https://xmemo.dev/product/mcp",
+  "repository": "https://github.com/yonro/xmemo-claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "xmemo",
+    "claude",
+    "mcp",
+    "memory",
+    "developer-tools",
+    "ai-agents"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}

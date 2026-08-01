@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "xmemo": {
+      "type": "http",
+      "url": "https://xmemo.dev/mcp",
+      "oauth": {
+        "scopes": "memory:read memory:write"
+      }
+    }
+  }
+}
