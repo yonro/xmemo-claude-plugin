@@ -1,0 +1,296 @@
+name: Release Claude Directory artifact
+
+# Builds the claude-directory release tree from an explicit main commit, runs every
+# gate, and only then fast-forwards claude-directory after a manual environment approval.
+# claude-directory is never merged from main and never force-pushed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version x.y.z. Must equal plugin.json and exceed the claude-directory version.
+        required: true
+        type: string
+      source_sha:
+        description: Full 40-character commit SHA on main to release.
+        required: true
+        type: string
+      dry_run:
+        description: Run every gate without updating claude-directory.
+        required: true
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: claude-directory-release
+  cancel-in-progress: false
+
+env:
+  CLAUDE_CODE_VERSION: "2.1.292"
+  DIRECTORY_BRANCH: claude-directory
+  RELEASE_ENVIRONMENT: claude-directory-release
+  BUILDER: .github/claude-directory/build_tree.py
+
+jobs:
+  build:
+    name: Build and gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      base_head: ${{ steps.base.outputs.base_head }}
+      tree: ${{ steps.build.outputs.tree }}
+      commit: ${{ steps.commit.outputs.commit }}
+    env:
+      VERSION: ${{ inputs.version }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Require main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Run this workflow from main, not $GITHUB_REF"
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+
+      - name: "G0: Validate inputs"
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::version must be x.y.z"; exit 1
+          fi
+          if ! [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::source_sha must be a full 40-character lowercase SHA"; exit 1
+          fi
+          git cat-file -e "${SOURCE_SHA}^{commit}"
+          if ! git merge-base --is-ancestor "$SOURCE_SHA" origin/main; then
+            echo "::error::source_sha $SOURCE_SHA is not on main"; exit 1
+          fi
+
+      - name: Require an approval-protected release environment
+        if: inputs.dry_run == false
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          reviewers=$(gh api "repos/${GITHUB_REPOSITORY}/environments/${RELEASE_ENVIRONMENT}" \
+            --jq '[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length')
+          if [ "${reviewers:-0}" -lt 1 ]; then
+            echo "::error::Environment ${RELEASE_ENVIRONMENT} must exist with required reviewers before publishing"
+            exit 1
+          fi
+
+      - name: Record claude-directory head
+        id: base
+        run: |
+          set -euo pipefail
+          base=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
+          git fetch --no-tags origin "$base"
+          echo "base_head=$base" >> "$GITHUB_OUTPUT"
+          echo "claude-directory head at build start: $base"
+
+      - name: "G9: Builder self-test and golden baseline"
+        run: |
+          python "$BUILDER" selftest
+          python "$BUILDER" golden
+
+      - name: "G1: Build release tree from source"
+        id: build
+        run: |
+          set -euo pipefail
+          python "$BUILDER" build --source "$SOURCE_SHA" \
+            --stage "$RUNNER_TEMP/stage" --output "$RUNNER_TEMP/build.json"
+          tree=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["tree"])' "$RUNNER_TEMP/build.json")
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+
+      - name: "G2: Anthropic Directory compatibility gates"
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+        run: python "$BUILDER" compat --tree "$TREE"
+
+      - name: "G3: XMemo package validation and credential scan on the artifact"
+        run: python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
+
+      - name: "G4: Claude strict validation on the artifact"
+        run: claude plugin validate "$RUNNER_TEMP/stage" --strict
+
+      - name: "G5: Checkpoint hook runtime tests on the artifact"
+        env:
+          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+        run: node scripts/test-checkpoint-hook.js
+
+      - name: "G6: Version gate"
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: python "$BUILDER" version --tree "$TREE" --base "$BASE_HEAD" --version "$VERSION"
+
+      - name: "G7: Change gate"
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: python "$BUILDER" changed --tree "$TREE" --base "$BASE_HEAD" | tee "$RUNNER_TEMP/changes.txt"
+
+      - name: Create and freeze the release commit
+        id: commit
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          commit=$(python "$BUILDER" commit --tree "$TREE" --base "$BASE_HEAD" \
+            --source "$SOURCE_SHA" --version "$VERSION" --run-url "$run_url" | tail -n 1)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          export COMMIT="$commit"
+          mkdir -p "$RUNNER_TEMP/release"
+          git update-ref refs/release/candidate "$commit"
+          git bundle create "$RUNNER_TEMP/release/release.bundle" refs/release/candidate "^$BASE_HEAD"
+          python - "$RUNNER_TEMP/release/manifest.json" <<'PY'
+          import json, os, sys
+          json.dump({key: os.environ[env] for key, env in {
+              "base_head": "BASE_HEAD", "commit": "COMMIT", "tree": "TREE",
+              "source_sha": "SOURCE_SHA", "version": "VERSION"}.items()},
+              open(sys.argv[1], "w"), indent=2)
+          PY
+          (cd "$RUNNER_TEMP/release" && sha256sum release.bundle manifest.json > release.sha256)
+
+      - name: "G8: Stale-head check (claude-directory unchanged during build)"
+        env:
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: |
+          set -euo pipefail
+          current=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
+          if [ "$current" != "$BASE_HEAD" ]; then
+            echo "::error::claude-directory moved from $BASE_HEAD to $current during the build; investigate manually"
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: claude-directory-release-${{ github.run_id }}
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Summary
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+          COMMIT: ${{ steps.commit.outputs.commit }}
+        run: |
+          {
+            echo "## Claude Directory release candidate"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Version | \`$VERSION\` |"
+            echo "| Source (main) | \`$SOURCE_SHA\` |"
+            echo "| claude-directory base | \`$BASE_HEAD\` |"
+            echo "| Release commit | \`$COMMIT\` |"
+            echo "| Release tree | \`$TREE\` |"
+            echo "| Dry run | \`$DRY_RUN\` |"
+            echo ""
+            echo "All gates passed (G0-G9). Changes against claude-directory:"
+            echo ""
+            echo '```'
+            cat "$RUNNER_TEMP/changes.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: Fast-forward claude-directory
+    needs: build
+    if: inputs.dry_run == false
+    runs-on: ubuntu-latest
+    environment: claude-directory-release
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      BASE_HEAD: ${{ needs.build.outputs.base_head }}
+      TREE: ${{ needs.build.outputs.tree }}
+      NEW_COMMIT: ${{ needs.build.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: claude-directory-release-${{ github.run_id }}
+          path: ${{ runner.temp }}/release
+
+      - name: Verify the frozen release commit
+        run: |
+          set -euo pipefail
+          (cd "$RUNNER_TEMP/release" && sha256sum --check release.sha256)
+          python - "$RUNNER_TEMP/release/manifest.json" <<'PY'
+          import json, os, sys
+          manifest = json.load(open(sys.argv[1]))
+          expected = {"base_head": "BASE_HEAD", "commit": "NEW_COMMIT", "tree": "TREE",
+                      "source_sha": "SOURCE_SHA", "version": "VERSION"}
+          wrong = [key for key, env in expected.items() if manifest.get(key) != os.environ[env]]
+          if wrong:
+              sys.exit(f"manifest does not match the approved build: {wrong}")
+          PY
+          git fetch --no-tags origin "$BASE_HEAD"
+          git bundle verify "$RUNNER_TEMP/release/release.bundle"
+          git fetch --no-tags "$RUNNER_TEMP/release/release.bundle" refs/release/candidate
+          if [ "$(git rev-parse FETCH_HEAD)" != "$NEW_COMMIT" ]; then
+            echo "::error::bundle does not contain the approved commit"; exit 1
+          fi
+          python .github/claude-directory/build_tree.py verify --commit "$NEW_COMMIT" \
+            --base "$BASE_HEAD" --tree "$TREE" --source "$SOURCE_SHA" --version "$VERSION"
+
+      - name: Stale-head check before push
+        run: |
+          set -euo pipefail
+          current=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
+          if [ "$current" != "$BASE_HEAD" ]; then
+            echo "::error::claude-directory is $current, expected $BASE_HEAD; refusing to push. Investigate manually."
+            exit 1
+          fi
+
+      - name: Fast-forward push
+        run: git push origin "${NEW_COMMIT}:refs/heads/${DIRECTORY_BRANCH}"
+
+      - name: Confirm remote head
+        run: |
+          set -euo pipefail
+          current=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
+          if [ "$current" != "$NEW_COMMIT" ]; then
+            echo "::error::claude-directory is $current after push, expected $NEW_COMMIT. Investigate manually."
+            exit 1
+          fi
+          {
+            echo "## claude-directory updated"
+            echo ""
+            echo "\`$BASE_HEAD\` -> \`$NEW_COMMIT\` (v$VERSION from main@\`$SOURCE_SHA\`)"
+            echo ""
+            echo "Next: confirm the Anthropic webhook push delivery, then select Publish update in the Claude developer portal."
+          } >> "$GITHUB_STEP_SUMMARY"

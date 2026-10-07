@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import struct
@@ -123,6 +124,27 @@ SECRET_PATTERNS = {
         r"(?im)^\s*(?:password|passwd|pwd)\s*[:=]\s*[^<\s][^\r\n]{7,}$"
     ),
 }
+
+
+def configure(root: Path, profile: str) -> None:
+    """Point the validator at another plugin root, such as a staged release tree.
+
+    The "directory" profile validates the claude-directory artifact, which carries
+    the runtime plugin without repository-only development files.
+    """
+    global ROOT, MANIFEST, MCP_CONFIG, HOOK_CONFIG, CHECKPOINT_HOOK, CHECKPOINT_HOOK_TEST
+    global SKILLS_ROOT, REQUIRED_FILES
+    old_root = ROOT
+    ROOT = root.resolve()
+    MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
+    MCP_CONFIG = ROOT / ".mcp.json"
+    HOOK_CONFIG = ROOT / "hooks" / "hooks.json"
+    CHECKPOINT_HOOK = ROOT / "scripts" / "checkpoint-hook.js"
+    CHECKPOINT_HOOK_TEST = ROOT / "scripts" / "test-checkpoint-hook.js"
+    SKILLS_ROOT = ROOT / "skills"
+    REQUIRED_FILES = {ROOT / path.relative_to(old_root) for path in REQUIRED_FILES}
+    if profile == "directory":
+        REQUIRED_FILES.discard(CHECKPOINT_HOOK_TEST)
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -379,6 +401,18 @@ def validate_secrets(errors: list[str]) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, help="plugin root to validate (default: this repository)")
+    parser.add_argument(
+        "--profile",
+        choices=("repo", "directory"),
+        default="repo",
+        help="repo validates the development repository; directory validates the release artifact",
+    )
+    args = parser.parse_args()
+    if args.root is not None or args.profile != "repo":
+        configure(args.root or ROOT, args.profile)
+
     errors: list[str] = []
 
     for path in sorted(REQUIRED_FILES):

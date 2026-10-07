@@ -9,22 +9,83 @@ on:
 permissions:
   contents: read
 
+env:
+  CLAUDE_CODE_VERSION: "2.1.292"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - name: Install Claude Code
-        run: npm install --global @anthropic-ai/claude-code
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
       - name: Validate with Claude Code
         run: claude plugin validate . --strict
       - name: Validate package
         run: python scripts/validate-package.py
+      - name: Validate package (explicit repo profile)
+        run: python scripts/validate-package.py --profile repo
       - name: Test checkpoint hooks
         run: node scripts/test-checkpoint-hook.js
+
+  directory-artifact:
+    name: Directory artifact dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install Claude Code
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      - name: Builder self-test
+        run: python .github/claude-directory/build_tree.py selftest
+      - name: Golden baseline (5d0d280 must rebuild the serving tree)
+        run: python .github/claude-directory/build_tree.py golden
+      - name: Build the artifact from this commit
+        id: build
+        run: |
+          set -euo pipefail
+          python .github/claude-directory/build_tree.py build --source HEAD \
+            --stage "$RUNNER_TEMP/stage" --output "$RUNNER_TEMP/build.json"
+          tree=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["tree"])' "$RUNNER_TEMP/build.json")
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+      - name: Anthropic Directory compatibility gates
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+        run: python .github/claude-directory/build_tree.py compat --tree "$TREE"
+      - name: Claude strict validation on the artifact
+        run: claude plugin validate "$RUNNER_TEMP/stage" --strict
+      - name: XMemo package validation on the artifact
+        run: python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
+      - name: Checkpoint hook tests on the artifact
+        env:
+          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+        run: node scripts/test-checkpoint-hook.js
+      - name: Artifact changes against claude-directory
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+        run: |
+          set -euo pipefail
+          base_tree=$(git rev-parse "origin/claude-directory^{tree}")
+          {
+            echo "## Directory artifact dry-run"
+            echo ""
+            echo "Built tree: \`$TREE\` (claude-directory tree: \`$base_tree\`)"
+            echo ""
+            echo '```'
+            git diff --name-status "$base_tree" "$TREE" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

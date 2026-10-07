@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "description": "XMemo Claude plugin release artifact definition. Decides which source files form the claude-directory tree. Anthropic Directory compatibility is checked separately by directory-compat.json and never changes this selection.",
+  "include": [
+    ".claude-plugin/**",
+    ".mcp.json",
+    "hooks/**",
+    "skills/**",
+    "scripts/checkpoint-hook.js",
+    "assets/**",
+    "examples/**",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "PRIVACY.md",
+    "CHANGELOG.md"
+  ],
+  "exclude": [
+    ".gitattributes",
+    ".gitignore",
+    ".github/**",
+    "scripts/test-checkpoint-hook.js",
+    "scripts/validate-package.py"
+  ],
+  "forbidden": [
+    "**/.env",
+    "**/.env.*",
+    "**/*.pem",
+    "**/*.key",
+    "**/*.p12",
+    "**/*.pfx",
+    "**/__pycache__/**",
+    "**/*.pyc",
+    "**/*.pyo",
+    "**/node_modules/**",
+    "**/*.zip",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/desktop.ini",
+    "**/__MACOSX/**",
+    ".progress/**",
+    ".claude/**",
+    ".codex/**",
+    ".agents/**",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md"
+  ],
+  "golden": {
+    "source": "5d0d2802daaf431eb31b038511f34a00b625ec9f",
+    "tree": "5ccc44059e806c7f54e3a91de01468b192de399c",
+    "serving_commit": "88a945712391cc58e7a196b916c9691ef59e8d2c"
+  }
+}
