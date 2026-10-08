@@ -1,0 +1,93 @@
+# claude-directory release artifact
+
+`main` is the only development branch. `claude-directory` is the branch the Claude
+Directory tracks, and it is generated from `main` by the
+[Release Claude Directory artifact](../workflows/release-claude-directory.yml) workflow.
+
+Never push, merge, or force-push `claude-directory` by hand. The workflow refuses to
+publish when the branch moved unexpectedly, and a manual change has to be investigated
+before the next release.
+
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `release-policy.json` | XMemo artifact definition: which source files are included, excluded, or forbidden. Every tracked file must be classified. `golden` records the serving baseline. |
+| `directory-compat.json` | Anthropic Directory compatibility gates. They inspect the built artifact and never change what is included. |
+| `build_tree.py` | Builds the release tree with git plumbing, runs the gates, freezes the release commit, and publishes it. Standard library only. |
+| `release_fixture.py` | Test only. Creates a local version-bump source commit for the success-path integration test in `validate.yml`. |
+
+## One release at a time
+
+Concurrent releases are not allowed. Dispatch a release only when no other run of the
+workflow is queued, running, or waiting for approval, including dry runs.
+
+The workflow uses the concurrency group `claude-directory-release`, which serializes runs
+but does not queue them. GitHub allows at most one running and one pending run in a group.
+A newly dispatched run cancels any pending run in the group, and the order in which runs
+start is not guaranteed. A run waiting for environment approval holds the group. The
+group also does not cover anything outside this workflow, such as a manual push.
+
+If two releases overlap anyway, the stale-head checks make the later one fail instead of
+overwriting the earlier one.
+
+## Release environment
+
+Before the first run with `dry_run: false`, configure the `claude-directory-release`
+environment in the repository settings:
+
+- **Required reviewers**: at least one person
+- **Allow administrators to bypass configured protection rules**: off
+- **Deployment branches and tags**: selected branches, with exactly one rule for the branch `main`
+
+Both jobs read these settings and fail closed when any of them is missing or different.
+The publish job also requires an approval for this run before it pushes.
+
+## Release
+
+1. On `main`, raise `version` in `.claude-plugin/plugin.json` and add a matching
+   `## x.y.z` heading to `CHANGELOG.md`.
+2. Run the workflow with `version`, the full `source_sha` on `main`, and `dry_run: true`.
+   Review the job summary: release commit, tree, and changes against `claude-directory`.
+3. Run it again with `dry_run: false`. Approve the `claude-directory-release` environment
+   when the build job has passed.
+4. The publish job checks the environment protection and this run's approval, verifies
+   the frozen release commit, checks that `claude-directory` still points at the recorded
+   base, fast-forwards it with a plain push, and checks the new remote head. It never
+   forces. Any unexpected head fails the run for manual investigation.
+5. Confirm the Anthropic webhook delivered the push, then select **Publish update** in
+   the Claude developer portal.
+
+## Gates
+
+| Gate | Check |
+| --- | --- |
+| G0 | Inputs: `x.y.z` version and a full SHA reachable from `main` |
+| G1 | Release policy: no forbidden, conflicting, or unclassified files |
+| G2 | Anthropic Directory compatibility rules DC-01 to DC-09 |
+| G3 | `validate-package.py --profile directory` on the staged artifact, including the credential scan |
+| G4 | `claude plugin validate --strict` on the staged artifact with a pinned Claude Code version |
+| G5 | Checkpoint hook tests against the staged hook through `XMEMO_HOOK_PATH` |
+| G6 | `plugin.json` version equals the input and is greater than the `claude-directory` version |
+| G7 | The artifact differs from the current `claude-directory` tree |
+| G8 | `claude-directory` did not move during the build, and again before the push |
+| G9 | Builder self-test and golden baseline: `5d0d280` rebuilds tree `5ccc440` |
+
+## Tests in CI
+
+`validate.yml` runs on every pull request:
+
+- **Directory artifact dry-run**: builds this commit's artifact and runs the self-test,
+  golden baseline, compatibility gates, strict validation, package validation, and hook tests.
+- **Release integration**: builds a local version-bump fixture, passes every gate, freezes
+  the release commit, uploads and downloads the frozen artifact, verifies it, and publishes
+  it into a local bare mirror. Tampered artifacts, stale heads, and the unchanged v1.0.0
+  are rejected. The jobs have no push credentials and leave `origin` unchanged.
+
+## Local checks
+
+```bash
+python .github/claude-directory/build_tree.py selftest
+python .github/claude-directory/build_tree.py golden
+python .github/claude-directory/build_tree.py build --source HEAD --stage /tmp/stage
+```

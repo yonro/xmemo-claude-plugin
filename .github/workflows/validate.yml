@@ -9,22 +9,268 @@ on:
 permissions:
   contents: read
 
+env:
+  CLAUDE_CODE_VERSION: "2.1.292"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
       - name: Install Claude Code
-        run: npm install --global @anthropic-ai/claude-code
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
       - name: Validate with Claude Code
         run: claude plugin validate . --strict
       - name: Validate package
         run: python scripts/validate-package.py
+      - name: Validate package (explicit repo profile)
+        run: python scripts/validate-package.py --profile repo
       - name: Test checkpoint hooks
         run: node scripts/test-checkpoint-hook.js
+
+  directory-artifact:
+    name: Directory artifact dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install Claude Code
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      - name: Builder self-test
+        run: python .github/claude-directory/build_tree.py selftest
+      - name: Golden baseline (5d0d280 must rebuild the serving tree)
+        run: python .github/claude-directory/build_tree.py golden
+      - name: Build the artifact from this commit
+        id: build
+        run: |
+          set -euo pipefail
+          python .github/claude-directory/build_tree.py build --source HEAD \
+            --stage "$RUNNER_TEMP/stage" --output "$RUNNER_TEMP/build.json"
+          tree=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["tree"])' "$RUNNER_TEMP/build.json")
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+      - name: Anthropic Directory compatibility gates
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+        run: python .github/claude-directory/build_tree.py compat --tree "$TREE"
+      - name: Claude strict validation on the artifact
+        run: claude plugin validate "$RUNNER_TEMP/stage" --strict
+      - name: XMemo package validation on the artifact
+        run: python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
+      - name: Checkpoint hook tests on the artifact
+        env:
+          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+        run: node scripts/test-checkpoint-hook.js
+      - name: Artifact changes against claude-directory
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+        run: |
+          set -euo pipefail
+          base_tree=$(git rev-parse "origin/claude-directory^{tree}")
+          {
+            echo "## Directory artifact dry-run"
+            echo ""
+            echo "Built tree: \`$TREE\` (claude-directory tree: \`$base_tree\`)"
+            echo ""
+            echo '```'
+            git diff --name-status "$base_tree" "$TREE" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Success-path integration test of the release pipeline. It runs the same builder
+  # commands as release-claude-directory.yml on a synthetic version-bump fixture and
+  # publishes into a local bare mirror. It has no push credentials, never updates
+  # origin, and never triggers an Anthropic Directory scan.
+  release-integration-build:
+    name: Release integration (build and freeze)
+    runs-on: ubuntu-latest
+    outputs:
+      base_head: ${{ steps.base.outputs.base_head }}
+      version: ${{ steps.fixture.outputs.version }}
+      source: ${{ steps.fixture.outputs.commit }}
+      tree: ${{ steps.build.outputs.tree }}
+      commit: ${{ steps.freeze.outputs.commit }}
+    env:
+      BUILDER: .github/claude-directory/build_tree.py
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Install Claude Code
+        run: npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+      - name: Record claude-directory head
+        id: base
+        run: |
+          set -euo pipefail
+          base=$(git ls-remote --exit-code origin refs/heads/claude-directory | cut -f1)
+          git fetch --no-tags origin "$base"
+          echo "base_head=$base" >> "$GITHUB_OUTPUT"
+      - name: Create a version-bump fixture source (local only)
+        id: fixture
+        env:
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: python .github/claude-directory/release_fixture.py --parent HEAD --base "$BASE_HEAD" | tee -a "$GITHUB_OUTPUT"
+      - name: Build release tree from the fixture
+        id: build
+        env:
+          SOURCE: ${{ steps.fixture.outputs.commit }}
+        run: |
+          set -euo pipefail
+          python "$BUILDER" build --source "$SOURCE" --stage "$RUNNER_TEMP/stage" --output "$RUNNER_TEMP/build.json"
+          tree=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["tree"])' "$RUNNER_TEMP/build.json")
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+      - name: Gates on the fixture artifact (compat, validator, strict, hooks)
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+        run: |
+          set -euo pipefail
+          python "$BUILDER" compat --tree "$TREE"
+          python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
+          claude plugin validate "$RUNNER_TEMP/stage" --strict
+          node scripts/test-checkpoint-hook.js
+      - name: Version and change gates pass for a real bump
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+          VERSION: ${{ steps.fixture.outputs.version }}
+        run: |
+          set -euo pipefail
+          python "$BUILDER" version --tree "$TREE" --base "$BASE_HEAD" --version "$VERSION"
+          python "$BUILDER" changed --tree "$TREE" --base "$BASE_HEAD"
+      - name: Version and change gates still reject the serving v1.0.0
+        env:
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: |
+          set -uo pipefail
+          golden_tree=$(git rev-parse "${BASE_HEAD}^{tree}")
+          if python "$BUILDER" version --tree "$golden_tree" --base "$BASE_HEAD" --version 1.0.0; then
+            echo "::error::version gate accepted an unchanged version"; exit 1
+          fi
+          if python "$BUILDER" changed --tree "$golden_tree" --base "$BASE_HEAD"; then
+            echo "::error::change gate accepted an identical tree"; exit 1
+          fi
+      - name: Freeze the release commit
+        id: freeze
+        env:
+          TREE: ${{ steps.build.outputs.tree }}
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+          SOURCE: ${{ steps.fixture.outputs.commit }}
+          VERSION: ${{ steps.fixture.outputs.version }}
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          commit=$(python "$BUILDER" freeze --tree "$TREE" --base "$BASE_HEAD" --source "$SOURCE" \
+            --version "$VERSION" --run-url "$run_url" --out-dir "$RUNNER_TEMP/release" | tail -n 1)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          git log -1 --format=%B "$commit"
+      - name: Stale-head check after build
+        env:
+          BASE_HEAD: ${{ steps.base.outputs.base_head }}
+        run: python "$BUILDER" check-head --remote origin --branch claude-directory --expect "$BASE_HEAD" --when "after build"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release
+          if-no-files-found: error
+          retention-days: 1
+
+  release-integration-publish:
+    name: Release integration (verify and publish to a local mirror)
+    needs: release-integration-build
+    runs-on: ubuntu-latest
+    env:
+      BUILDER: .github/claude-directory/build_tree.py
+      BASE_HEAD: ${{ needs.release-integration-build.outputs.base_head }}
+      VERSION: ${{ needs.release-integration-build.outputs.version }}
+      SOURCE: ${{ needs.release-integration-build.outputs.source }}
+      TREE: ${{ needs.release-integration-build.outputs.tree }}
+      NEW_COMMIT: ${{ needs.release-integration-build.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: release-integration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release
+      - name: Verify the downloaded frozen release
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_HEAD"
+          python "$BUILDER" verify-frozen --dir "$RUNNER_TEMP/release" --commit "$NEW_COMMIT" \
+            --base "$BASE_HEAD" --tree "$TREE" --source "$SOURCE" --version "$VERSION"
+      - name: Tampered or mismatched releases are rejected
+        run: |
+          set -uo pipefail
+          cp -r "$RUNNER_TEMP/release" "$RUNNER_TEMP/tampered"
+          sed -i "s/\"$VERSION\"/\"9.9.9\"/" "$RUNNER_TEMP/tampered/manifest.json"
+          if python "$BUILDER" verify-frozen --dir "$RUNNER_TEMP/tampered" --commit "$NEW_COMMIT" \
+              --base "$BASE_HEAD" --tree "$TREE" --source "$SOURCE" --version "$VERSION"; then
+            echo "::error::tampered manifest was accepted"; exit 1
+          fi
+          if python "$BUILDER" verify-frozen --dir "$RUNNER_TEMP/release" --commit "$BASE_HEAD" \
+              --base "$BASE_HEAD" --tree "$TREE" --source "$SOURCE" --version "$VERSION"; then
+            echo "::error::a different commit was accepted"; exit 1
+          fi
+      - name: Publish into a local bare mirror (plain fast-forward)
+        run: |
+          set -euo pipefail
+          mirror="$RUNNER_TEMP/mirror.git"
+          git init --quiet --bare "$mirror"
+          git push --quiet "$mirror" "${BASE_HEAD}:refs/heads/claude-directory"
+          python "$BUILDER" publish --remote "$mirror" --branch claude-directory --base "$BASE_HEAD" --commit "$NEW_COMMIT"
+          test "$(git --git-dir "$mirror" rev-parse refs/heads/claude-directory)" = "$NEW_COMMIT"
+      - name: Stale heads are rejected without changing the mirror
+        run: |
+          set -uo pipefail
+          mirror="$RUNNER_TEMP/mirror.git"
+          ancestor=$(git rev-parse "${BASE_HEAD}^")
+          git --git-dir "$mirror" update-ref refs/heads/claude-directory "$ancestor"
+          if python "$BUILDER" publish --remote "$mirror" --branch claude-directory --base "$BASE_HEAD" --commit "$NEW_COMMIT"; then
+            echo "::error::publish accepted a head rewound to an ancestor"; exit 1
+          fi
+          test "$(git --git-dir "$mirror" rev-parse refs/heads/claude-directory)" = "$ancestor"
+          git --git-dir "$mirror" update-ref refs/heads/claude-directory "$NEW_COMMIT"
+          if python "$BUILDER" publish --remote "$mirror" --branch claude-directory --base "$BASE_HEAD" --commit "$NEW_COMMIT"; then
+            echo "::error::publish accepted a head that already moved"; exit 1
+          fi
+      - name: origin claude-directory is unchanged
+        run: python "$BUILDER" check-head --remote origin --branch claude-directory --expect "$BASE_HEAD" --when "after integration test"
+      - name: Summary
+        run: |
+          {
+            echo "## Release integration (no push to origin)"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Fixture version | \`$VERSION\` |"
+            echo "| Fixture source (local only) | \`$SOURCE\` |"
+            echo "| claude-directory base | \`$BASE_HEAD\` |"
+            echo "| Frozen release commit | \`$NEW_COMMIT\` |"
+            echo "| Release tree | \`$TREE\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

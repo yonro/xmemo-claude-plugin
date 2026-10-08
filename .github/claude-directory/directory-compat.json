@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "description": "Anthropic Claude Directory compatibility gates. They inspect the built artifact only and never add or remove files. Update this file when Anthropic's checklist changes.",
+  "source": "https://claude.com/docs/plugins/pre-submission-checklist",
+  "doc_checked": "2026-10-07",
+  "rules": {
+    "DC-01": {
+      "severity": "block",
+      "title": "No export-ignore, export-subst, or filter attributes in any .gitattributes file"
+    },
+    "DC-02": {
+      "severity": "block",
+      "title": "No .DS_Store, Thumbs.db, desktop.ini, or __MACOSX entries"
+    },
+    "DC-03": {
+      "severity": "block",
+      "title": "Regular files only: no symbolic links, submodules, or Git LFS pointers"
+    },
+    "DC-04": {
+      "severity": "block",
+      "title": "File and folder names valid on Windows and macOS, without case-only collisions"
+    },
+    "DC-05": {
+      "severity": "block",
+      "title": "Size limits: non-image files under 256 KiB, every file under 5 MiB, at most 512 files",
+      "params": {
+        "max_text_bytes": 262144,
+        "max_file_bytes": 5242880,
+        "max_files": 512
+      }
+    },
+    "DC-06": {
+      "severity": "block",
+      "title": "Binary files limited to PNG, JPEG, GIF, WebP images and fonts"
+    },
+    "DC-07": {
+      "severity": "block",
+      "title": "Remote MCP server URLs use https:// or wss://"
+    },
+    "DC-08": {
+      "severity": "block",
+      "title": "Every ${CLAUDE_PLUGIN_ROOT} path used by a hook exists inside the plugin"
+    },
+    "DC-09": {
+      "severity": "block",
+      "title": "README of at least 40 words outside code blocks and a LICENSE",
+      "params": {
+        "min_readme_words": 40
+      }
+    }
+  }
+}

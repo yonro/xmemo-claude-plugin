@@ -8,7 +8,10 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const ROOT = path.resolve(__dirname, "..");
-const HOOK = path.join(ROOT, "scripts", "checkpoint-hook.js");
+// XMEMO_HOOK_PATH lets the release pipeline test the hook inside a staged release tree.
+const HOOK = process.env.XMEMO_HOOK_PATH
+  ? path.resolve(process.env.XMEMO_HOOK_PATH)
+  : path.join(ROOT, "scripts", "checkpoint-hook.js");
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "xmemo-hook-test-"));
 const project = path.join(temporary, "project");
 fs.mkdirSync(project);
