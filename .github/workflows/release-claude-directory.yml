@@ -3,6 +3,7 @@ name: Release Claude Directory artifact
 # Builds the claude-directory release tree from an explicit main commit, runs every
 # gate, and only then fast-forwards claude-directory after a manual environment approval.
 # claude-directory is never merged from main and never force-pushed.
+# Only one release may run at a time; see .github/claude-directory/README.md.
 
 on:
   workflow_dispatch:
@@ -43,7 +44,7 @@ jobs:
     outputs:
       base_head: ${{ steps.base.outputs.base_head }}
       tree: ${{ steps.build.outputs.tree }}
-      commit: ${{ steps.commit.outputs.commit }}
+      commit: ${{ steps.freeze.outputs.commit }}
     env:
       VERSION: ${{ inputs.version }}
       SOURCE_SHA: ${{ inputs.source_sha }}
@@ -86,18 +87,17 @@ jobs:
             echo "::error::source_sha $SOURCE_SHA is not on main"; exit 1
           fi
 
-      - name: Require an approval-protected release environment
+      - name: Require an approval-protected, main-only release environment
         if: inputs.dry_run == false
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          reviewers=$(gh api "repos/${GITHUB_REPOSITORY}/environments/${RELEASE_ENVIRONMENT}" \
-            --jq '[.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?] | length')
-          if [ "${reviewers:-0}" -lt 1 ]; then
-            echo "::error::Environment ${RELEASE_ENVIRONMENT} must exist with required reviewers before publishing"
-            exit 1
-          fi
+          gh api "repos/${GITHUB_REPOSITORY}/environments/${RELEASE_ENVIRONMENT}" > "$RUNNER_TEMP/environment.json"
+          gh api "repos/${GITHUB_REPOSITORY}/environments/${RELEASE_ENVIRONMENT}/deployment-branch-policies" \
+            > "$RUNNER_TEMP/branch-policies.json"
+          python "$BUILDER" check-environment --environment "$RUNNER_TEMP/environment.json" \
+            --branch-policies "$RUNNER_TEMP/branch-policies.json" --branch main
 
       - name: Record claude-directory head
         id: base
@@ -151,39 +151,21 @@ jobs:
         run: python "$BUILDER" changed --tree "$TREE" --base "$BASE_HEAD" | tee "$RUNNER_TEMP/changes.txt"
 
       - name: Create and freeze the release commit
-        id: commit
+        id: freeze
         env:
           TREE: ${{ steps.build.outputs.tree }}
           BASE_HEAD: ${{ steps.base.outputs.base_head }}
         run: |
           set -euo pipefail
           run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          commit=$(python "$BUILDER" commit --tree "$TREE" --base "$BASE_HEAD" \
-            --source "$SOURCE_SHA" --version "$VERSION" --run-url "$run_url" | tail -n 1)
+          commit=$(python "$BUILDER" freeze --tree "$TREE" --base "$BASE_HEAD" --source "$SOURCE_SHA" \
+            --version "$VERSION" --run-url "$run_url" --out-dir "$RUNNER_TEMP/release" | tail -n 1)
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
-          export COMMIT="$commit"
-          mkdir -p "$RUNNER_TEMP/release"
-          git update-ref refs/release/candidate "$commit"
-          git bundle create "$RUNNER_TEMP/release/release.bundle" refs/release/candidate "^$BASE_HEAD"
-          python - "$RUNNER_TEMP/release/manifest.json" <<'PY'
-          import json, os, sys
-          json.dump({key: os.environ[env] for key, env in {
-              "base_head": "BASE_HEAD", "commit": "COMMIT", "tree": "TREE",
-              "source_sha": "SOURCE_SHA", "version": "VERSION"}.items()},
-              open(sys.argv[1], "w"), indent=2)
-          PY
-          (cd "$RUNNER_TEMP/release" && sha256sum release.bundle manifest.json > release.sha256)
 
       - name: "G8: Stale-head check (claude-directory unchanged during build)"
         env:
           BASE_HEAD: ${{ steps.base.outputs.base_head }}
-        run: |
-          set -euo pipefail
-          current=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
-          if [ "$current" != "$BASE_HEAD" ]; then
-            echo "::error::claude-directory moved from $BASE_HEAD to $current during the build; investigate manually"
-            exit 1
-          fi
+        run: python "$BUILDER" check-head --remote origin --branch "$DIRECTORY_BRANCH" --expect "$BASE_HEAD" --when "after build"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -196,7 +178,7 @@ jobs:
         env:
           TREE: ${{ steps.build.outputs.tree }}
           BASE_HEAD: ${{ steps.base.outputs.base_head }}
-          COMMIT: ${{ steps.commit.outputs.commit }}
+          COMMIT: ${{ steps.freeze.outputs.commit }}
         run: |
           {
             echo "## Claude Directory release candidate"
@@ -225,6 +207,7 @@ jobs:
     environment: claude-directory-release
     permissions:
       contents: write
+      actions: read
     env:
       VERSION: ${{ inputs.version }}
       SOURCE_SHA: ${{ inputs.source_sha }}
@@ -240,6 +223,19 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Require the environment protection and a human approval for this run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/environments/${RELEASE_ENVIRONMENT}" > "$RUNNER_TEMP/environment.json"
+          gh api "repos/${GITHUB_REPOSITORY}/environments/${RELEASE_ENVIRONMENT}/deployment-branch-policies" \
+            > "$RUNNER_TEMP/branch-policies.json"
+          python "$BUILDER" check-environment --environment "$RUNNER_TEMP/environment.json" \
+            --branch-policies "$RUNNER_TEMP/branch-policies.json" --branch main
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" > "$RUNNER_TEMP/approvals.json"
+          python "$BUILDER" check-approval --approvals "$RUNNER_TEMP/approvals.json" --environment "$RELEASE_ENVIRONMENT"
+
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: claude-directory-release-${{ github.run_id }}
@@ -248,45 +244,15 @@ jobs:
       - name: Verify the frozen release commit
         run: |
           set -euo pipefail
-          (cd "$RUNNER_TEMP/release" && sha256sum --check release.sha256)
-          python - "$RUNNER_TEMP/release/manifest.json" <<'PY'
-          import json, os, sys
-          manifest = json.load(open(sys.argv[1]))
-          expected = {"base_head": "BASE_HEAD", "commit": "NEW_COMMIT", "tree": "TREE",
-                      "source_sha": "SOURCE_SHA", "version": "VERSION"}
-          wrong = [key for key, env in expected.items() if manifest.get(key) != os.environ[env]]
-          if wrong:
-              sys.exit(f"manifest does not match the approved build: {wrong}")
-          PY
           git fetch --no-tags origin "$BASE_HEAD"
-          git bundle verify "$RUNNER_TEMP/release/release.bundle"
-          git fetch --no-tags "$RUNNER_TEMP/release/release.bundle" refs/release/candidate
-          if [ "$(git rev-parse FETCH_HEAD)" != "$NEW_COMMIT" ]; then
-            echo "::error::bundle does not contain the approved commit"; exit 1
-          fi
-          python .github/claude-directory/build_tree.py verify --commit "$NEW_COMMIT" \
+          python "$BUILDER" verify-frozen --dir "$RUNNER_TEMP/release" --commit "$NEW_COMMIT" \
             --base "$BASE_HEAD" --tree "$TREE" --source "$SOURCE_SHA" --version "$VERSION"
 
-      - name: Stale-head check before push
-        run: |
-          set -euo pipefail
-          current=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
-          if [ "$current" != "$BASE_HEAD" ]; then
-            echo "::error::claude-directory is $current, expected $BASE_HEAD; refusing to push. Investigate manually."
-            exit 1
-          fi
+      - name: Stale-head check, plain fast-forward push, post-push check
+        run: python "$BUILDER" publish --remote origin --branch "$DIRECTORY_BRANCH" --base "$BASE_HEAD" --commit "$NEW_COMMIT"
 
-      - name: Fast-forward push
-        run: git push origin "${NEW_COMMIT}:refs/heads/${DIRECTORY_BRANCH}"
-
-      - name: Confirm remote head
+      - name: Summary
         run: |
-          set -euo pipefail
-          current=$(git ls-remote --exit-code origin "refs/heads/${DIRECTORY_BRANCH}" | cut -f1)
-          if [ "$current" != "$NEW_COMMIT" ]; then
-            echo "::error::claude-directory is $current after push, expected $NEW_COMMIT. Investigate manually."
-            exit 1
-          fi
           {
             echo "## claude-directory updated"
             echo ""

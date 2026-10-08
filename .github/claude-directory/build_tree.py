@@ -8,6 +8,7 @@ no merge, and file bytes are the source blobs. Ref updates are left to the workf
 from __future__ import annotations
 
 import argparse
+import hashlib
 import io
 import json
 import os
@@ -323,7 +324,7 @@ def release_message(version: str, source: str, base: str, run_url: str) -> str:
 
 
 def trailers(commit: str) -> dict[str, str]:
-    body = git_text("log", "-1", "--format=%B", commit)
+    body = git_text("log", "-1", "--format=%B", commit).replace("\r", "")
     return dict(re.findall(r"(?m)^([A-Za-z-]+): (\S+)$", body))
 
 
@@ -399,8 +400,12 @@ def cmd_changed(args) -> None:
     print(git("diff", "--name-status", base_tree, args.tree).decode().strip())
 
 
-def cmd_commit(args) -> None:
-    for value, label in ((args.source, "source"), (args.base, "base")):
+CANDIDATE_REF = "refs/release/candidate"
+FROZEN_FILES = ("release.bundle", "manifest.json")
+
+
+def make_release_commit(tree: str, base: str, source: str, version: str, run_url: str) -> str:
+    for value, label in ((source, "source"), (base, "base")):
         if not FULL_SHA.fullmatch(value):
             raise GateError(f"{label} must be a full 40-character SHA")
     bot = "github-actions[bot]"
@@ -412,19 +417,149 @@ def cmd_commit(args) -> None:
         GIT_COMMITTER_NAME=bot,
         GIT_COMMITTER_EMAIL=email,
     )
-    message = release_message(args.version, args.source, args.base, args.run_url)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
+    message = release_message(version, source, base, run_url)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="\n", delete=False) as handle:
         handle.write(message)
     try:
-        commit = git_text("commit-tree", args.tree, "-p", args.base, "-F", handle.name, env=env)
+        commit = git_text("commit-tree", tree, "-p", base, "-F", handle.name, env=env)
     finally:
         os.unlink(handle.name)
-    verify_release(commit, args.base, args.tree, args.source, args.version)
+    verify_release(commit, base, tree, source, version)
+    return commit
+
+
+def sha256_of(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def cmd_freeze(args) -> None:
+    """Create the release commit and freeze it as bundle + manifest + checksums."""
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    commit = make_release_commit(args.tree, args.base, args.source, args.version, args.run_url)
+    git("update-ref", CANDIDATE_REF, commit)
+    git("bundle", "create", str(out / "release.bundle"), CANDIDATE_REF, f"^{args.base}")
+    manifest = {
+        "base_head": args.base,
+        "commit": commit,
+        "tree": args.tree,
+        "source_sha": args.source,
+        "version": args.version,
+    }
+    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (out / "release.sha256").write_text(
+        "".join(f"{sha256_of(out / name)}  {name}\n" for name in FROZEN_FILES), encoding="utf-8"
+    )
+    print(f"frozen release commit {commit} in {out}")
     print(commit)
 
 
-def cmd_verify(args) -> None:
+def cmd_verify_frozen(args) -> None:
+    """Verify that a frozen release is exactly the approved build before publishing."""
+    out = Path(args.dir)
+    recorded = dict(
+        line.split("  ", 1)[::-1] for line in (out / "release.sha256").read_text(encoding="utf-8").splitlines()
+    )
+    for name in FROZEN_FILES:
+        if recorded.get(name) != sha256_of(out / name):
+            raise GateError(f"checksum mismatch for {name}")
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    expected = {
+        "base_head": args.base,
+        "commit": args.commit,
+        "tree": args.tree,
+        "source_sha": args.source,
+        "version": args.version,
+    }
+    wrong = sorted(key for key, value in expected.items() if manifest.get(key) != value)
+    if wrong:
+        raise GateError(f"manifest does not match the approved build: {wrong}")
+    git("bundle", "verify", str(out / "release.bundle"))
+    git("fetch", "--no-tags", str(out / "release.bundle"), CANDIDATE_REF)
+    if git_text("rev-parse", "FETCH_HEAD") != args.commit:
+        raise GateError("bundle does not contain the approved commit")
     verify_release(args.commit, args.base, args.tree, args.source, args.version)
+    print("frozen release verified")
+
+
+def remote_head(remote: str, branch: str) -> str:
+    output = git_text("ls-remote", "--exit-code", remote, f"refs/heads/{branch}")
+    return output.split()[0]
+
+
+def require_head(remote: str, branch: str, expected: str, when: str) -> None:
+    current = remote_head(remote, branch)
+    if current != expected:
+        raise GateError(f"{branch} is {current} {when}, expected {expected}; investigate manually")
+    print(f"{branch} head {when}: {current}")
+
+
+def cmd_check_head(args) -> None:
+    require_head(args.remote, args.branch, args.expect, args.when)
+
+
+def cmd_publish(args) -> None:
+    """Fast-forward the branch with a plain push after a stale-head check. Never forces."""
+    parents = git_text("rev-list", "--parents", "-n", "1", args.commit).split()[1:]
+    if parents != [args.base]:
+        raise GateError(f"{args.commit} is not a direct child of {args.base}; refusing to push")
+    require_head(args.remote, args.branch, args.base, "before push")
+    git("push", args.remote, f"{args.commit}:refs/heads/{args.branch}")
+    require_head(args.remote, args.branch, args.commit, "after push")
+
+
+def check_environment(environment: dict, branch_policies: dict, branch: str) -> list[str]:
+    problems = []
+    reviewers = [
+        reviewer
+        for rule in environment.get("protection_rules") or []
+        if rule.get("type") == "required_reviewers"
+        for reviewer in rule.get("reviewers") or []
+    ]
+    if not reviewers:
+        problems.append("no required reviewers")
+    if environment.get("can_admins_bypass") is not False:
+        problems.append("administrators can bypass the protection rules")
+    policy = environment.get("deployment_branch_policy")
+    if not policy:
+        problems.append("deployment branches are not restricted")
+    elif policy.get("protected_branches") or not policy.get("custom_branch_policies"):
+        problems.append("deployment branches must use a custom policy, not protected branches")
+    else:
+        allowed = sorted(
+            (item.get("type", "branch"), item.get("name"))
+            for item in branch_policies.get("branch_policies") or []
+        )
+        if allowed != [("branch", branch)]:
+            problems.append(f"deployment branch policy must allow only branch {branch!r}, found {allowed}")
+    return problems
+
+
+def cmd_check_environment(args) -> None:
+    environment = json.loads(Path(args.environment).read_text(encoding="utf-8"))
+    policies = json.loads(Path(args.branch_policies).read_text(encoding="utf-8"))
+    problems = check_environment(environment, policies, args.branch)
+    if problems:
+        raise GateError(f"environment {environment.get('name')!r} is not safe to publish: {problems}")
+    print(f"environment {environment.get('name')!r} requires approval and allows only {args.branch}")
+
+
+def check_approval(approvals: list, environment: str) -> list[str]:
+    return [
+        item["user"]["login"]
+        for item in approvals
+        if item.get("state") == "approved"
+        and environment in {env.get("name") for env in item.get("environments") or []}
+        and (item.get("user") or {}).get("login")
+    ]
+
+
+def cmd_check_approval(args) -> None:
+    approvals = json.loads(Path(args.approvals).read_text(encoding="utf-8"))
+    approvers = check_approval(approvals, args.environment)
+    if not approvers:
+        raise GateError(f"no human approval recorded for environment {args.environment!r} in this run")
+    print(f"approved by: {', '.join(sorted(set(approvers)))}")
 
 
 def cmd_selftest(args) -> None:
@@ -485,6 +620,38 @@ def cmd_selftest(args) -> None:
     fired = {rule_id for rule_id, _ in compat_findings(tree, load_json(COMPAT_PATH))}
     expected = set(load_json(COMPAT_PATH)["rules"])
     assert fired == expected, f"rules that did not fire: {sorted(expected - fired)}"
+
+    # Environment protection must fail closed on every unsafe configuration.
+    safe_env = {
+        "name": "claude-directory-release",
+        "can_admins_bypass": False,
+        "protection_rules": [{"type": "required_reviewers", "reviewers": [{"type": "User"}]}],
+        "deployment_branch_policy": {"protected_branches": False, "custom_branch_policies": True},
+    }
+    main_only = {"branch_policies": [{"name": "main", "type": "branch"}]}
+    assert check_environment(safe_env, main_only, "main") == []
+    unsafe = {
+        "no reviewers": ({**safe_env, "protection_rules": []}, main_only),
+        "admin bypass": ({**safe_env, "can_admins_bypass": True}, main_only),
+        "bypass unknown": ({k: v for k, v in safe_env.items() if k != "can_admins_bypass"}, main_only),
+        "any branch": ({**safe_env, "deployment_branch_policy": None}, main_only),
+        "protected branches": (
+            {**safe_env, "deployment_branch_policy": {"protected_branches": True, "custom_branch_policies": False}},
+            main_only,
+        ),
+        "extra branch": (safe_env, {"branch_policies": [{"name": "main"}, {"name": "dev"}]}),
+        "wildcard": (safe_env, {"branch_policies": [{"name": "*", "type": "branch"}]}),
+        "tag policy": (safe_env, {"branch_policies": [{"name": "main", "type": "tag"}]}),
+        "no policies": (safe_env, {"branch_policies": []}),
+    }
+    for label, (environment, policies) in unsafe.items():
+        assert check_environment(environment, policies, "main"), label
+
+    approved = [{"state": "approved", "environments": [{"name": "claude-directory-release"}], "user": {"login": "han"}}]
+    assert check_approval(approved, "claude-directory-release") == ["han"]
+    assert check_approval([{**approved[0], "state": "rejected"}], "claude-directory-release") == []
+    assert check_approval([{**approved[0], "environments": [{"name": "other"}]}], "claude-directory-release") == []
+    assert check_approval([], "claude-directory-release") == []
     print("build_tree self-test passed")
 
 
@@ -515,15 +682,36 @@ def main() -> int:
     p.add_argument("--base", required=True)
     p.set_defaults(func=cmd_changed)
 
-    p = sub.add_parser("commit", help="create the release commit with Base-Head as its only parent")
-    for name in ("tree", "base", "source", "version", "run-url"):
+    p = sub.add_parser("freeze", help="create the release commit and freeze it as bundle, manifest, checksums")
+    for name in ("tree", "base", "source", "version", "run-url", "out-dir"):
         p.add_argument(f"--{name}", required=True)
-    p.set_defaults(func=cmd_commit)
+    p.set_defaults(func=cmd_freeze)
 
-    p = sub.add_parser("verify", help="verify a release commit against the build record")
-    for name in ("commit", "base", "tree", "source", "version"):
+    p = sub.add_parser("verify-frozen", help="verify a frozen release against the approved build")
+    for name in ("dir", "commit", "base", "tree", "source", "version"):
         p.add_argument(f"--{name}", required=True)
-    p.set_defaults(func=cmd_verify)
+    p.set_defaults(func=cmd_verify_frozen)
+
+    p = sub.add_parser("check-head", help="fail unless a remote branch points at the expected commit")
+    for name in ("remote", "branch", "expect"):
+        p.add_argument(f"--{name}", required=True)
+    p.add_argument("--when", default="now")
+    p.set_defaults(func=cmd_check_head)
+
+    p = sub.add_parser("publish", help="stale-head check, plain fast-forward push, post-push check")
+    for name in ("remote", "branch", "base", "commit"):
+        p.add_argument(f"--{name}", required=True)
+    p.set_defaults(func=cmd_publish)
+
+    p = sub.add_parser("check-environment", help="fail closed unless the environment is approval-protected")
+    for name in ("environment", "branch-policies", "branch"):
+        p.add_argument(f"--{name}", required=True)
+    p.set_defaults(func=cmd_check_environment)
+
+    p = sub.add_parser("check-approval", help="fail unless this run has a human environment approval")
+    for name in ("approvals", "environment"):
+        p.add_argument(f"--{name}", required=True)
+    p.set_defaults(func=cmd_check_approval)
 
     sub.add_parser("selftest", help="run builder unit checks").set_defaults(func=cmd_selftest)
 
