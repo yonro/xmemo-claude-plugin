@@ -2,6 +2,18 @@
 
 Use only tools visible in the active XMemo MCP connection. This plugin does not expose private server tools, ChatGPT widget tools, or hidden legacy aliases.
 
+## Connection rule
+
+The host may show XMemo tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix.
+
+Before reporting that XMemo is disconnected, check whether any XMemo tool is available. If none is, or a needed tool is missing:
+
+1. Say plainly that nothing was read from or written to XMemo.
+2. Point the user to the host's connection control: run `/mcp` and sign in to XMemo in Claude Code, or open the XMemo plugin's Connectors tab and select Connect in the Claude app or Cowork.
+3. Continue from the live workspace or material the user supplied when that is still useful, and label the result as not grounded in saved memory.
+
+Never ask for tokens, passwords, or authorization codes in the conversation, and never claim a recall or save that did not run.
+
 ## Signed Claude Code plugin tools
 
 The plugin OAuth profile exposes exactly these 16 tools. The separately submitted Claude Directory Connector remains an independent 19-tool surface.

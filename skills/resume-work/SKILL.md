@@ -7,6 +7,8 @@ description: Resume a project or unfinished task from XMemo by recovering the la
 
 Reconstruct actionable continuity without replaying chat history. Follow **identify → recover → reconcile → brief → continue → checkpoint**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Identify the work precisely
 
 Establish the project, task, artifact, branch, environment, or authorized scope. If several candidates match, present the candidates instead of guessing.

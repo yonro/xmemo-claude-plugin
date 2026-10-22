@@ -80,6 +80,33 @@ try {
     null
   );
 
+  // Other XMemo tools do not clear a pending checkpoint.
+  batch(["Edit", "Bash", "Write", "Bash", "Bash", "Bash"]);
+  batch(["mcp__plugin_xmemo_xmemo__recall"]);
+  assert.match(
+    run({
+      hook_event_name: "Stop",
+      stop_hook_active: false,
+      last_assistant_message: "Recalled context.",
+      background_tasks: [],
+      session_crons: []
+    }).hookSpecificOutput.additionalContext,
+    /XMemo checkpoint due/
+  );
+
+  // A checkpoint saved through a connector-named server also clears it.
+  batch(["mcp__aded79cf-8595-4f91-b254-ea347e0f3940__update_state"]);
+  assert.equal(
+    run({
+      hook_event_name: "Stop",
+      stop_hook_active: false,
+      last_assistant_message: "Checkpoint saved.",
+      background_tasks: [],
+      session_crons: []
+    }),
+    null
+  );
+
   run({
     hook_event_name: "TaskCompleted",
     task_id: "task-1",

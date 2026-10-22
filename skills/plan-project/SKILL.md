@@ -7,6 +7,8 @@ description: Design or revise an evidence-gated project plan and executable Mark
 
 Turn intent into reviewable, executable project artifacts. Follow **discover → recall → frame → decompose → gate → write → approve → checkpoint**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Discover the planning surface
 
 Inspect the live repository or project before designing the plan. Identify its canonical documentation location, existing plans, architecture, test and release commands, ownership conventions, and dirty-worktree boundaries. Do not invent commands, paths, capabilities, or completed work.

@@ -3,6 +3,11 @@
 These synthetic prompts exercise each professional workflow without assuming
 that XMemo writes happen automatically.
 
+## Get started
+
+- `/xmemo:get-started` I just installed XMemo. Check the connection, show what it already knows about this repository, and suggest what to save first.
+- What can XMemo do for this project? XMemo is not connected yet.
+
 ## Brainstorm
 
 - `/xmemo:brainstorm` Explore three architecture directions for offline-first project memory. Recall our saved constraints, compare trade-offs and experiments, and keep every option tentative until I approve one.

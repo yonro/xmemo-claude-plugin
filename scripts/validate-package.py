@@ -34,6 +34,7 @@ EXPECTED_SKILLS = {
     "audit-progress",
     "brainstorm",
     "distill-session",
+    "get-started",
     "handoff-work",
     "memory-steward",
     "plan-project",
@@ -45,6 +46,7 @@ FOCUSED_SKILL_MARKERS = {
     "audit-progress": {"verified", "claimed", "update_state"},
     "brainstorm": {"diverge", "converge", "remember"},
     "distill-session": {"raw transcript", "preview", "update_memory"},
+    "get-started": {"get_mcp_identity", "## XMemo memory", "original task"},
     "handoff-work": {"provenance", "exact next action", "record_event"},
     "plan-project": {"PROJECT_PLAN.md", "EXECUTION_PLAN.md", "acceptance gate"},
     "resume-work": {"Resume Brief", "reconcile", "get_project_context"},
@@ -247,7 +249,7 @@ def validate_hooks(errors: list[str]) -> None:
     for marker in (
         "stop_hook_active",
         "CLAUDE_PLUGIN_DATA",
-        "mcp__(?:plugin_xmemo_xmemo|xmemo)__update_state",
+        "/^mcp__.+__update_state$/",
         "raw transcripts",
     ):
         if marker not in source:

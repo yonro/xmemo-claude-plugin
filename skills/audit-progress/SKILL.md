@@ -7,6 +7,8 @@ description: Audit implementation or project progress against the approved XMemo
 
 Measure reality against the approved baseline. Follow **baseline → claims → evidence → reconcile → verdict → checkpoint**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Recover the governing baseline
 
 Use `recall_context`, `get_project_context`, `search_memory`, and relevant `todo` reads to recover the approved plan, acceptance criteria, settled decisions, last verified checkpoint, and known blockers. State which artifact or memory is the baseline and flag ambiguity before auditing.

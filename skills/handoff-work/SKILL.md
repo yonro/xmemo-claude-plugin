@@ -7,6 +7,8 @@ description: Prepare or receive a professional XMemo handoff between Claude sess
 
 Transfer verified continuity, not confidence or chat history. Follow **scope → verify → package → persist → receive → acknowledge**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Establish the transfer
 
 Identify the objective, source, recipient, project or scope, artifacts, handoff direction, and whether work is paused or complete. Never assume the recipient exposes the same tools or can access local-only artifacts.
