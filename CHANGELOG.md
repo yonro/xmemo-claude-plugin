@@ -2,6 +2,11 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.2 - 2026-10-23
+
+- Declare `privacyPolicyUrl` (`https://xmemo.dev/legal/privacy`) in the plugin manifest, as requested by the Anthropic Directory checks.
+- Document that the Anthropic Directory publishes a pushed `claude-directory` release automatically once its checks pass, replacing the manual **Publish update** step.
+
 ## 1.0.1 - 2026-10-23
 
 - Rewrite the README in plain Markdown so it renders in the Claude plugin page, and update it for the Anthropic Directory listing, Claude app and Cowork setup through the plugin's Connectors tab, and Hook availability by surface.

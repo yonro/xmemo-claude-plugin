@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "xmemo",
   "displayName": "XMemo",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Professional XMemo workflows and lifecycle checkpoint automation for planning, review, progress recovery, and cross-agent handoffs in Claude.",
   "author": {
     "name": "XMemo",
@@ -10,6 +10,7 @@
     "url": "https://xmemo.dev"
   },
   "homepage": "https://xmemo.dev/integrations/claude",
+  "privacyPolicyUrl": "https://xmemo.dev/legal/privacy",
   "repository": "https://github.com/yonro/xmemo-claude-plugin",
   "license": "MIT",
   "keywords": [
