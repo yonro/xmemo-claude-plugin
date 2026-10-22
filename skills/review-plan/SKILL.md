@@ -7,6 +7,8 @@ description: Review a proposed plan against XMemo's saved goals, decisions, cons
 
 Test a proposal against durable context before work begins. Follow **scope → baseline → decompose → challenge → verdict → gate**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Define the review contract
 
 Identify the plan version, intended outcome, project or scope, decision owner, risk tolerance, and required review depth. Distinguish a draft, proposed plan, approved plan, and implemented state.

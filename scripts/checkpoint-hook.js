@@ -11,8 +11,9 @@ const CHECKPOINT_INTERVAL_MS = 15 * 60 * 1000;
 const PROMPT_COOLDOWN_MS = 10 * 60 * 1000;
 const ACTIVITY_THRESHOLD = 6;
 
-const XMEMO_UPDATE_STATE =
-  /^mcp__(?:plugin_xmemo_xmemo|xmemo)__update_state$/;
+// Hosts name the XMemo server differently (plugin, project config, or a connector
+// id), so any MCP server's update_state counts as a saved checkpoint.
+const XMEMO_UPDATE_STATE = /^mcp__.+__update_state$/;
 const WRITE_TOOLS = new Set(["Edit", "Write", "NotebookEdit", "MultiEdit"]);
 const WORK_TOOLS = new Set([
   ...WRITE_TOOLS,

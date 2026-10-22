@@ -2,6 +2,18 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.1 - 2026-10-23
+
+- Rewrite the README in plain Markdown so it renders in the Claude plugin page, and update it for the Anthropic Directory listing, Claude app and Cowork setup through the plugin's Connectors tab, and Hook availability by surface.
+- Add the `get-started` Skill for first-run onboarding: check the connection in plain language, show what XMemo already knows about the current work, offer to seed a few confirmed memories, offer once to add an every-session `## XMemo memory` section to the project's `CLAUDE.md` (or the uncommitted `CLAUDE.local.md` when repository rules exclude `CLAUDE.md`), and return to the original task.
+- Read narrowly before widening in `get-started` and `memory-steward`: query by project or repository name first, reuse the distinctive words of a saved location instead of its full path, retry once instead of showing off-topic document excerpts and then stop using `recall_context` for that scope, and show only TODOs that belong to the current scope.
+- Report recalled context in two groups, durable facts and working state, and offer to update or soft-delete working state that newer memories or the live workspace show as completed or superseded.
+- Add proactive recall and save guidance to `memory-steward`: recall when saved context could change the result, offer to save lasting preferences and settled decisions, and skip XMemo for casual or one-turn work.
+- Add "Make memory compound" guidance to `memory-steward`: apply saved preferences visibly, update memories from user corrections, keep TODOs, decisions, and checkpoints fresh, organize for retrieval, and offer clean-up of duplicates and stale items.
+- Add good memory candidates to the memory policy.
+- Add a shared connection rule to `tool-routing.md`, referenced by every Skill: match tools regardless of host prefix, report that nothing was read or written when XMemo is not connected, point to `/mcp` or the plugin's Connectors tab, and never request credentials in chat.
+- Let the checkpoint Hook accept `update_state` from any MCP server name, so checkpoints saved through a project-scoped server or a connector also clear the pending marker.
+
 ## 1.0.0 - 2026-08-01
 
 - Expand the plugin from one general memory Skill to an eight-Skill professional workflow suite.

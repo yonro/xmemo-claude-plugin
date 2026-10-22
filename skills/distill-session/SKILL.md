@@ -7,6 +7,8 @@ description: Turn an important Claude conversation or work session into concise,
 
 Preserve what remains useful after the conversation disappears. Follow **collect → classify → deduplicate → preview → write → receipt**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Identify the durable boundary
 
 Determine the subject, project or scope, and whether the user wants a summary only, a durable save, or both. Do not infer consent for sensitive or ambiguous writes.

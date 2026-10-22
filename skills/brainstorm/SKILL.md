@@ -7,6 +7,8 @@ description: Run a structured XMemo-grounded brainstorm that recalls prior goals
 
 Create new options without losing the decisions and constraints that already shape the work. Follow **frame → recall → diverge → challenge → converge → preserve**.
 
+If no XMemo tool is available, follow the connection rule in `../memory-steward/references/tool-routing.md`: say that nothing was read or written, and point the user to the host's connection control.
+
 ## 1. Frame the exploration
 
 State the problem, desired outcome, decision horizon, known constraints, and what must remain open. Ask only for missing information that would materially change the option space.

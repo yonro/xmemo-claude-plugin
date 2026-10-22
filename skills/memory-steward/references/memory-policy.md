@@ -21,6 +21,16 @@ Use this reference to decide whether to save, update, checkpoint, preview, or sk
 | Secret, credential, token, or highly sensitive identifier | Never save |
 | Financial transaction | Use the available Ledger tool, not generic memory |
 
+## Good candidates
+
+These usually pay off in later sessions:
+
+- Repository conventions and the build, test, release, and deploy commands that actually work.
+- Architecture and product decisions with their rationale.
+- User-approved preferences for language, answer format, code review, testing, or documentation.
+- Verified troubleshooting steps and bug-fix context that may recur.
+- Open TODOs, blockers, risks, and the latest restart-ready checkpoint.
+
 ## Durable-memory quality
 
 A durable memory must:
