@@ -55,8 +55,12 @@ The publish job also requires an approval for this run before it pushes.
    the frozen release commit, checks that `claude-directory` still points at the recorded
    base, fast-forwards it with a plain push, and checks the new remote head. It never
    forces. Any unexpected head fails the run for manual investigation.
-5. Confirm the Anthropic webhook delivered the push, then select **Publish update** in
-   the Claude developer portal.
+5. No manual publish step is needed. The Anthropic Directory detects the push, runs its
+   security scan and directory policy checks, and publishes the version automatically
+   when they pass. In the Claude developer portal, confirm on the **Versions** tab that
+   the new commit is **Serving**, and read the **Latest check** findings. A version stays
+   held when a check requires manual review, and listings can take up to an hour to
+   update.
 
 ## Gates
 
