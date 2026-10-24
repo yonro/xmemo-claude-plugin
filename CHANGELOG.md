@@ -2,6 +2,11 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.4 - 2026-10-25
+
+- Rewrite the plugin description around XMemo's core positioning as the Memory OS for AI agents: one user-owned memory shared between Claude and other AI tools.
+- Declare `termsOfServiceUrl`, `documentationUrl`, and `supportUrl` in the plugin manifest for the Anthropic Directory listing.
+
 ## 1.0.3 - 2026-10-25
 
 - Add time-aware query rules to `tool-routing.md`, referenced from `memory-steward`: convert relative times to RFC 3339 windows in the user's time zone, respect the half-open 90-day window, use `time_order` for latest-first or chronological results, read "last week" as the previous calendar week, search by topic within the window when a question names a topic and keep `query_mode=activity_log` with both bounds for topic-free "what happened" questions, filter results to the named topic in either mode before reporting, treat a result count equal to the limit as possibly incomplete, and report the window used.

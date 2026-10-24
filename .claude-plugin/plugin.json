@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "xmemo",
   "displayName": "XMemo",
-  "version": "1.0.3",
-  "description": "Professional XMemo workflows and lifecycle checkpoint automation for planning, review, progress recovery, and cross-agent handoffs in Claude.",
+  "version": "1.0.4",
+  "description": "XMemo is the Memory OS for AI agents. Give Claude a user-owned memory it shares with your other AI tools, so you can switch AIs and keep everything: projects, decisions, preferences, and progress.",
   "author": {
     "name": "XMemo",
     "email": "support@xmemo.dev",
@@ -11,6 +11,9 @@
   },
   "homepage": "https://xmemo.dev/integrations/claude",
   "privacyPolicyUrl": "https://xmemo.dev/legal/privacy",
+  "termsOfServiceUrl": "https://xmemo.dev/legal/tos",
+  "documentationUrl": "https://docs.xmemo.dev/docs/mcp/claude-code",
+  "supportUrl": "https://xmemo.dev/support",
   "repository": "https://github.com/yonro/xmemo-claude-plugin",
   "license": "MIT",
   "keywords": [
