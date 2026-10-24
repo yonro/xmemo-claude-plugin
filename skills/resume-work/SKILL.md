@@ -15,7 +15,7 @@ Establish the project, task, artifact, branch, environment, or authorized scope.
 
 ## 2. Recover the minimum complete context
 
-Prefer `get_project_context` for a known project and `recall_context` for a task-oriented pack. Add `search_memory`, pending decisions, or `todo` reads only when needed to close a specific gap. Recover:
+Prefer `get_project_context` for a known project and `recall_context` for a task-oriented pack. Add `search_memory`, pending decisions, or `todo` reads only when needed to close a specific gap. When searching for the latest checkpoint or recent progress, pass `time_order=desc` where the tool supports it, so the newest state comes first; when the user names a period, such as "since Friday", follow the time-aware rules in `../memory-steward/references/tool-routing.md`. Recover:
 
 - objective and acceptance criteria;
 - latest verified checkpoint;

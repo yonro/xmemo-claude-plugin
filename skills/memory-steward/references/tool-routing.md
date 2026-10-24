@@ -14,6 +14,20 @@ Before reporting that XMemo is disconnected, check whether any XMemo tool is ava
 
 Never ask for tokens, passwords, or authorization codes in the conversation, and never claim a recall or save that did not run.
 
+## Time-aware queries
+
+`recall`, `search_memory`, and `recall_context` can filter and sort by time. Check each tool's schema first and send only the time parameters it exposes.
+
+- **Convert relative time to absolute time.** Turn "today", "yesterday", "last week", "since Monday", "in Q3", and similar phrases into RFC 3339 timestamps with the user's time-zone offset, such as `2026-10-17T00:00:00+09:00`. Use local midnight for day boundaries. If the user's time zone is unknown, use the best available signal and state the assumption.
+- **Read "last week" as the previous calendar week.** It runs from Monday 00:00 to the following Monday 00:00 in the user's time zone, unless the user's locale starts weeks on another day. Use a rolling window ending now only for phrases such as "the past 7 days". State which reading you used.
+- **Bound the window.** `since` and `until` form the half-open window [since, until), and `until` must be later than `since`. One query covers at most 90 days; split a longer range into consecutive windows, merge the results, and say if any window could not be read.
+- **Order by recency when it matters.** Pass `time_order` with `desc` for "latest", "recent", or "newest first", and with `asc` for a timeline or "oldest first". Without a time constraint or recency intent, leave it unset so relevance ranking applies.
+- **Match the mode to the question.** When the question names a topic, project, or repository, such as "what did I do on the Claude plugin last week", search in the default topic mode with the time window first. `activity_log` ignores the topic and returns everything in the window. Pass `query_mode` with `activity_log`, together with both `since` and `until`, only for topic-free questions such as "what did I do last week", or to fill gaps after a topic search. It fails without both bounds.
+- **Filter results to the topic in both modes.** A time window narrows what the server ranks, so a topic search over a sparse window can return nearly everything in it. Before reporting, keep only results that clearly belong to the named topic, project, or repository, whichever mode produced them, and say when nothing relevant was found.
+- **Treat a full page as possibly incomplete.** When the number of results equals the limit, more items may exist. Split the window into smaller windows, such as one day each, or raise the limit where the tool allows it, and say in the answer when coverage may be incomplete. For work in a repository, cross-check the window against its commit and CI history.
+- **Know the time axis.** Results show which time a filter used, such as `Axis: created_at`. Do not describe a memory as updated in a window when only its creation time was filtered.
+- **Report the window.** State the absolute window you used, in the user's time zone, so the user can correct it.
+
 ## Signed Claude Code plugin tools
 
 The plugin OAuth profile exposes exactly these 16 tools. The separately submitted Claude Directory Connector remains an independent 19-tool surface.
