@@ -2,6 +2,11 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.3 - 2026-10-25
+
+- Add time-aware query rules to `tool-routing.md`, referenced from `memory-steward`: convert relative times to RFC 3339 windows in the user's time zone, respect the half-open 90-day window, use `time_order` for latest-first or chronological results, read "last week" as the previous calendar week, search by topic within the window when a question names a topic and keep `query_mode=activity_log` with both bounds for topic-free "what happened" questions, filter results to the named topic in either mode before reporting, treat a result count equal to the limit as possibly incomplete, and report the window used.
+- Pass `time_order=desc` in `resume-work` and `get-started` when looking for the latest checkpoint or recent progress.
+
 ## 1.0.2 - 2026-10-23
 
 - Declare `privacyPolicyUrl` (`https://xmemo.dev/legal/privacy`) in the plugin manifest, as requested by the Anthropic Directory checks.

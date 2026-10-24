@@ -27,7 +27,7 @@ When connected, confirm in one line, for example "XMemo is connected." Do not sh
 
 Identify the current scope: the repository or folder name, a project the user named, or the topic of the conversation. Read narrowly first, then widen once:
 
-1. Use `get_project_context` for a known project. Otherwise, use `search_memory` with the exact scope name, such as the repository name. When results show a saved location for this work, reuse its distinctive words, such as `Claude-plugin`, in follow-up queries; do not paste the full location path as query text.
+1. Use `get_project_context` for a known project. Otherwise, use `search_memory` with the exact scope name, such as the repository name. When results show a saved location for this work, reuse its distinctive words, such as `Claude-plugin`, in follow-up queries; do not paste the full location path as query text. When looking for the latest checkpoint or recent progress, pass `time_order=desc` where the tool supports it, so the newest state comes first.
 2. Use `recall_context` only to fill gaps, with a query that names the scope. If most results are off-topic or document excerpts from unrelated work, retry once with a narrower query instead of showing them. If the retry is still off-topic, stop using `recall_context` for this scope in this conversation and rely on `search_memory`.
 3. Read open actions with `todo` and `action=list` only when they would help, and show only items that clearly belong to the current scope. TODO lists are not filtered by project, so leave unrelated items out.
 
