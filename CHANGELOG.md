@@ -2,8 +2,9 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
-## Unreleased
+## 1.0.5 - 2026-10-29
 
+- Document the full `project` contract: besides creating a formal project, `project` can change an authorized project's memories, decisions, document and conversation links, and settings through the listed `entity`/`action` pairs; documents can be linked, not created.
 - Add `read_memory` to the Skill tool set (now 17) for reading a memory or saved document in full when a recalled excerpt is not enough.
 - Add guidance for the other XMemo tools: Claude uses them when the user directly asks for what they do, without any Skill depending on them.
 - Support direct MCP configuration of `https://xmemo.dev/mcp` (35 tools) alongside the XMemo Connector.

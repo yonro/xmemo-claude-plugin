@@ -8,7 +8,7 @@ Recall the context behind the work, preserve verified decisions and progress,
 and hand projects across sessions without archiving raw conversations.
 
 [![Validation](https://img.shields.io/github/actions/workflow/status/yonro/xmemo-claude-plugin/validate.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=validation)](https://github.com/yonro/xmemo-claude-plugin/actions/workflows/validate.yml)
-![Plugin version](https://img.shields.io/badge/plugin-v1.0.4-8B5CF6?style=flat-square)
+![Plugin version](https://img.shields.io/badge/plugin-v1.0.5-8B5CF6?style=flat-square)
 [![License](https://img.shields.io/github/license/yonro/xmemo-claude-plugin?style=flat-square)](LICENSE)
 ![Claude plugin](https://img.shields.io/badge/Claude-Anthropic%20Directory-D97757?style=flat-square)
 ![Hosted MCP](https://img.shields.io/badge/MCP-hosted-06B6D4?style=flat-square)
@@ -41,7 +41,7 @@ plugin's XMemo server as a custom connector (see [Quick start](#quick-start)).
 | Plugin ID | `xmemo` |
 | Skills | Nine professional workflows under `/xmemo:*` |
 | Automation | Fail-open lifecycle checkpoint Hook (Claude Code and Cowork) |
-| Version | `1.0.4` |
+| Version | `1.0.5` |
 | Bundle | Claude Skill suite + checkpoint Hook + hosted MCP configuration |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 browser sign-in with Dynamic Client Registration |
