@@ -291,6 +291,7 @@ TODO deletion, or hidden legacy aliases.
 | Recall and search | Yes | Limited to the signed-in account and scopes |
 | Durable writes and working state | Yes | Performed only when requested by the user or active workflow |
 | Project creation | Yes | Only after an explicit formal-project request |
+| Project changes | Yes | Memories, decisions, document and conversation links, and settings of an authorized project; documents can be linked, not created |
 | Recoverable deletion | Yes | `forget` is soft delete by default |
 | Permanent deletion | Yes | Requires an explicit irreversible request and exact target |
 | Cross-agent continuity | Yes | Other agents require their own authorized XMemo connection |

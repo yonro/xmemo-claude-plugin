@@ -59,12 +59,31 @@ Use `read_memory` when a recalled excerpt is cut off and the rest matters, or wh
 
 | Intent | Tool |
 | --- | --- |
-| Create a formal project after an explicit request | `project` |
+| Create a formal project after an explicit request | `project` with `entity=project`, `action=create` |
+| Change an existing formal project (see the `project` actions below) | `project` with `project_id` |
 | Save an unresolved choice | `create_pending_decision` |
 | Close an exact pending choice | `resolve_decision` |
 | Create, update, complete, or list actions | `todo` |
 | Save or replace scoped working state | `update_state` |
 | Record a milestone or handoff event | `record_event` |
+
+### `project` actions
+
+`project` accepts exactly these `entity`/`action` pairs. Every pair except
+`project/create` needs the exact authorized `project_id`:
+
+| `entity` | `action` |
+| --- | --- |
+| `project` | `create` |
+| `memory` | `update`, `set_review_due` (pass `memory_ref` and `expected_version`) |
+| `decision` | `create`, `resolve`, `reopen`, `supersede` |
+| `document` | `link`, `update_metadata`, `set_availability`, `unlink` (documents can be linked, not created) |
+| `conversation` | `link`, `update_metadata`, `set_availability`, `unlink` |
+| `settings` | `save` |
+
+Use `get_project_context` for project reads. TODOs still go through `todo`.
+Plain memories outside a formal project still go through `remember` and
+`update_memory`. Any other pair is rejected as invalid input.
 
 ## Other XMemo tools
 
@@ -78,7 +97,7 @@ The connection usually has more tools than the Skills route, such as an expense 
 ## Safety rules
 
 - Never call a nonexistent tool or claim an unavailable capability succeeded.
-- `project` is limited to explicit formal project creation in this plugin.
+- Create a formal `project` only after an explicit request. Change an existing project only with the pairs listed above and its exact `project_id`; `unlink`, `set_availability` and `supersede` change linked records, so confirm the exact target first.
 - `todo` does not expose bulk deletion.
 - `todo` with `action=list` needs `owner_timezone`, the user's IANA time zone such as `Asia/Tokyo`, when the account has no saved time zone. Use the best available signal and state the assumption; never default to UTC.
 - Never use hard deletion without the user's explicit irreversible-delete request and an exact target.

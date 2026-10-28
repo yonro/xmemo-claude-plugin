@@ -109,6 +109,7 @@ Keep these concepts separate:
 | New durable knowledge, preference, decision, or procedure | `remember` |
 | Correction to an existing durable concept | `update_memory` |
 | Explicit formal project creation | `project` with `entity=project`, `action=create` |
+| Change an existing formal project's memories, decisions, document or conversation links, or settings | `project` with the matching `entity`/`action` and `project_id` (see the tool-routing reference) |
 | Concrete future action | `todo` with `action=create` |
 | Update, complete, or list actions | `todo` with `action=update`, `complete`, or `list` |
 | Unresolved choice | `create_pending_decision` |
