@@ -46,7 +46,7 @@ plugin's XMemo server as a custom connector (see [Quick start](#quick-start)).
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 browser sign-in with Dynamic Client Registration |
 | Requested scopes | `memory:read memory:write` |
-| Tool profile | Signed Claude Code profile, exactly 16 tools |
+| Tools | Claude Code: 19-tool plugin profile; Claude app and Cowork: 27-tool XMemo Connector. Both include the 16 tools the Skills call |
 | MCP resources | None |
 | Local Hook state | Bounded metadata only under `CLAUDE_PLUGIN_DATA`; no transcript content |
 | License | MIT |
@@ -175,8 +175,9 @@ The plugin has three complementary components:
    `/mcp`, the Claude app and Cowork through the plugin's Connectors tab.
 4. The server advertises OAuth metadata, and Claude registers its client and
    runs the browser authorization.
-5. The signed OAuth client identity selects the XMemo tool profile for that
-   client; Claude Code receives the isolated 16-tool profile.
+5. The server selects the tool set from the OAuth client identity: Claude Code
+   receives the 19-tool plugin profile, and the Claude app and Cowork receive
+   the 27-tool XMemo Connector. Both include the 16 tools the Skills call.
 6. Each tool reads or writes only data authorized for the signed-in XMemo
    account and requested scope.
 7. Claude reports the useful result without exposing tokens, internal traces,
@@ -262,7 +263,14 @@ never asks for credentials in the conversation.
 
 ## Tool surface
 
-The signed Claude Code profile exposes exactly 16 tools:
+The server gives each Claude surface its own tool set:
+
+| Surface | Tool set | Tools |
+|---|---|---|
+| Claude Code | XMemo plugin profile | 19 |
+| Claude app and Cowork | XMemo Connector | 27 |
+
+Both tool sets include the 16 tools the Skills call:
 
 | Area | Tools |
 |---|---|
@@ -273,10 +281,10 @@ The signed Claude Code profile exposes exactly 16 tools:
 | Decisions | `create_pending_decision`, `resolve_decision` |
 | Work tracking | `todo`, `update_state`, `record_event` |
 
-The profile exposes zero MCP resources and no widget UI. It excludes Ledger,
-aggregate analytics, ChatGPT widgets, bulk TODO deletion, and hidden legacy
-aliases. The separately submitted Claude Directory Connector has an independent
-tool contract and is not changed by this plugin.
+The plugin profile adds document reading and restart snapshots; the Connector
+adds Ledger, legacy TODO, aggregate analytics, and document reading. No Skill
+routes to those extra tools. The Skills use no MCP resources, widget UI, bulk
+TODO deletion, or hidden legacy aliases.
 
 ## Capabilities and boundaries
 
@@ -344,7 +352,7 @@ It verifies:
 
 - manifest identity, display name, SemVer, and package paths;
 - hosted endpoint and exact OAuth scope pin;
-- the signed 16-tool routing contract;
+- the 16-tool Skill routing contract;
 - the exact nine-Skill suite, frontmatter, workflow markers, templates, and referenced playbooks;
 - required public documents and parseable assets;
 - exact Hook lifecycle events, exec-form command safety, and no transcript/network access;
@@ -398,7 +406,7 @@ Canonical service policies:
 - Nine-Skill professional workflow bundle: present.
 - Seven-event checkpoint Hook and regression tests: present.
 - OAuth MCP configuration: present.
-- Isolated 16-tool Claude Code server contract: verified.
+- All 16 tools the Skills call are on both the 19-tool plugin profile and the 27-tool XMemo Connector: verified.
 - MCP resources and widget UI: absent.
 - Package validator and CI: present.
 - Synthetic workflow prompts: present.
@@ -417,7 +425,7 @@ Canonical service policies:
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 + Dynamic Client Registration |
 | Scopes | `memory:read memory:write` |
-| Tool profile | `claude-plugin` — 16 tools, 0 resources |
+| Tools | Claude Code plugin profile: 19; Claude app and Cowork Connector: 27; Skills call 16 |
 | Repository | `https://github.com/yonro/xmemo-claude-plugin` |
 | Directory state | Plugin published; connector under review |
 

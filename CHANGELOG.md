@@ -2,6 +2,10 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## Unreleased
+
+- Correct the tool counts in the README and `tool-routing.md`: the server selects the tool set per client, giving Claude Code the 19-tool plugin profile and the Claude app and Cowork the 27-tool XMemo Connector. Both include the 16 tools the Skills call. This replaces the earlier "isolated 16-tool profile" and "19-tool Connector" statements.
+
 ## 1.0.4 - 2026-10-25
 
 - Rewrite the plugin description around XMemo's core positioning as the Memory OS for AI agents: one user-owned memory shared between Claude and other AI tools.

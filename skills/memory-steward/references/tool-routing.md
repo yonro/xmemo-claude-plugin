@@ -4,7 +4,7 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-The host may show XMemo tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix.
+The host may show XMemo tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall` or `mcp__claude_ai_XMemo__recall`. Match tools by the names below, not by the prefix.
 
 Before reporting that XMemo is disconnected, check whether any XMemo tool is available. If none is, or a needed tool is missing:
 
@@ -28,9 +28,9 @@ Never ask for tokens, passwords, or authorization codes in the conversation, and
 - **Know the time axis.** Results show which time a filter used, such as `Axis: created_at`. Do not describe a memory as updated in a window when only its creation time was filtered.
 - **Report the window.** State the absolute window you used, in the user's time zone, so the user can correct it.
 
-## Signed Claude Code plugin tools
+## Tools the Skills call
 
-The plugin OAuth profile exposes exactly these 16 tools. The separately submitted Claude Directory Connector remains an independent 19-tool surface.
+The server selects the tool set from the OAuth client identity. Claude Code receives the 19-tool XMemo plugin profile; the Claude app and Cowork receive the 27-tool XMemo Connector. Both include these 16 tools, and the Skills call only these. The extra tools on each surface (document reading and restart snapshots on the plugin profile; Ledger, legacy TODO, aggregate analytics, and document reading on the Connector) are not routed by any Skill.
 
 ### Connection and memory lifecycle
 
@@ -66,7 +66,7 @@ The plugin OAuth profile exposes exactly these 16 tools. The separately submitte
 ## Safety rules
 
 - Never call a nonexistent tool or claim an unavailable capability succeeded.
-- `project` is limited to explicit formal project creation on this profile.
-- `todo` does not expose bulk deletion on this profile.
+- `project` is limited to explicit formal project creation in this plugin.
+- `todo` does not expose bulk deletion.
 - Never use hard deletion without the user's explicit irreversible-delete request and an exact target.
 - Never use one memory write to archive an entire raw conversation.

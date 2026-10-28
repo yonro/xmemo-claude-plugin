@@ -326,7 +326,7 @@ def validate_skills(errors: list[str]) -> None:
     if forbidden_routing_claims:
         fail(
             errors,
-            "tool-routing.md must not advertise hidden/retired tools: "
+            "tool-routing.md must not route to tools outside the Skill set: "
             f"{sorted(forbidden_routing_claims)}",
         )
 
@@ -338,7 +338,7 @@ def validate_skills(errors: list[str]) -> None:
     if forbidden_skill_claims:
         fail(
             errors,
-            "Skill suite must not route to hidden/retired tools: "
+            "Skill suite must not route to tools outside the Skill set: "
             f"{sorted(forbidden_skill_claims)}",
         )
 
@@ -440,7 +440,7 @@ def main() -> int:
     print("- MCP endpoint: https://xmemo.dev/mcp")
     print(f"- professional Skill suite documented: {len(EXPECTED_SKILLS)} skills")
     print(f"- checkpoint lifecycle hooks documented: {len(EXPECTED_HOOK_EVENTS)} events")
-    print(f"- Claude Code plugin tool contract documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
+    print(f"- Skill tool routing documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
     print("- credential scan: clean")
     return 0
 
