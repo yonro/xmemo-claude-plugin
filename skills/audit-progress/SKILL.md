@@ -11,7 +11,7 @@ If no XMemo tool is available, follow the connection rule in `../memory-steward/
 
 ## 1. Recover the governing baseline
 
-Use `recall_context`, `get_project_context`, `search_memory`, and relevant `todo` reads to recover the approved plan, acceptance criteria, settled decisions, last verified checkpoint, and known blockers. State which artifact or memory is the baseline and flag ambiguity before auditing.
+Use `recall_context`, `get_project_context`, `search_memory`, `read_memory` for a saved plan needed in full, and relevant `todo` reads to recover the approved plan, acceptance criteria, settled decisions, last verified checkpoint, and known blockers. State which artifact or memory is the baseline and flag ambiguity before auditing.
 
 ## 2. Normalize the progress claims
 

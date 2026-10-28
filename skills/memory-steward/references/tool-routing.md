@@ -4,7 +4,7 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-The host may show XMemo tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall` or `mcp__claude_ai_XMemo__recall`. Match tools by the names below, not by the prefix.
+XMemo can be connected through the claude.ai XMemo Connector or through a direct MCP configuration that points at `https://xmemo.dev/mcp`. Both work the same way for the Skills. The host may show XMemo tools with a prefix, such as `mcp__claude_ai_XMemo__recall`, `mcp__xmemo__recall`, or `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix.
 
 Before reporting that XMemo is disconnected, check whether any XMemo tool is available. If none is, or a needed tool is missing:
 
@@ -30,7 +30,7 @@ Never ask for tokens, passwords, or authorization codes in the conversation, and
 
 ## Tools the Skills call
 
-The server selects the tool set from the OAuth client identity. Claude Code receives the 19-tool XMemo plugin profile; the Claude app and Cowork receive the 27-tool XMemo Connector. Both include these 16 tools, and the Skills call only these. The extra tools on each surface (document reading and restart snapshots on the plugin profile; Ledger, legacy TODO, aggregate analytics, and document reading on the Connector) are not routed by any Skill.
+The XMemo Connector exposes 27 tools on Claude Code, the Claude app, and Cowork; a direct MCP configuration exposes 35, a superset. The Skills route to these 17, which every XMemo connection has. For the remaining tools, see [Other XMemo tools](#other-xmemo-tools).
 
 ### Connection and memory lifecycle
 
@@ -51,6 +51,9 @@ The server selects the tool set from the OAuth client identity. Claude Code rece
 | Exact or scoped search | `search_memory` |
 | Bounded multi-memory context or resume | `recall_context` |
 | Bounded formal-project context | `get_project_context` |
+| Full text of one memory or a `document:<id>` result | `read_memory` |
+
+Use `read_memory` when a recalled excerpt is cut off and the rest matters, or when a result is a document, such as a saved plan, spec, or report, that the task needs in full. Pass the exact reference from the recall result. When the response has `has_more`, continue with the returned `revision` as `memory_id` and `next_offset`, so every page comes from the same version. For a long document, start at the relevant section with `anchor` instead of reading everything.
 
 ### Projects, decisions, TODOs, and progress
 
@@ -63,10 +66,20 @@ The server selects the tool set from the OAuth client identity. Claude Code rece
 | Save or replace scoped working state | `update_state` |
 | Record a milestone or handoff event | `record_event` |
 
+## Other XMemo tools
+
+The connection usually has more tools than the Skills route, such as an expense ledger, memory counts and breakdowns, recent activity, and text-frequency analysis. No Skill depends on them, and their names vary with how XMemo is connected. When the user directly asks for something one of them covers, use it:
+
+- Confirm the tool is visible in the active connection and follow its own description and schema.
+- Treat writes, such as adding an expense, like any other XMemo write: only on the user's request, with a short receipt.
+- For TODOs, use `todo` rather than older TODO-specific tools.
+- If no visible tool covers the request, say so instead of approximating it with another tool.
+
 ## Safety rules
 
 - Never call a nonexistent tool or claim an unavailable capability succeeded.
 - `project` is limited to explicit formal project creation in this plugin.
 - `todo` does not expose bulk deletion.
+- `todo` with `action=list` needs `owner_timezone`, the user's IANA time zone such as `Asia/Tokyo`, when the account has no saved time zone. Use the best available signal and state the assumption; never default to UTC.
 - Never use hard deletion without the user's explicit irreversible-delete request and an exact target.
 - Never use one memory write to archive an entire raw conversation.

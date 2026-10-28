@@ -60,6 +60,7 @@ EXPECTED_CLAUDE_TOOLS = {
     "get_mcp_identity",
     "get_project_context",
     "project",
+    "read_memory",
     "recall",
     "recall_context",
     "record_event",
