@@ -8,7 +8,7 @@ Recall the context behind the work, preserve verified decisions and progress,
 and hand projects across sessions without archiving raw conversations.
 
 [![Validation](https://img.shields.io/github/actions/workflow/status/yonro/xmemo-claude-plugin/validate.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=validation)](https://github.com/yonro/xmemo-claude-plugin/actions/workflows/validate.yml)
-![Plugin version](https://img.shields.io/badge/plugin-v1.0.5-8B5CF6?style=flat-square)
+![Plugin version](https://img.shields.io/badge/plugin-v1.0.6-8B5CF6?style=flat-square)
 [![License](https://img.shields.io/github/license/yonro/xmemo-claude-plugin?style=flat-square)](LICENSE)
 ![Claude plugin](https://img.shields.io/badge/Claude-Anthropic%20Directory-D97757?style=flat-square)
 ![Hosted MCP](https://img.shields.io/badge/MCP-hosted-06B6D4?style=flat-square)
@@ -41,12 +41,12 @@ plugin's XMemo server as a custom connector (see [Quick start](#quick-start)).
 | Plugin ID | `xmemo` |
 | Skills | Nine professional workflows under `/xmemo:*` |
 | Automation | Fail-open lifecycle checkpoint Hook (Claude Code and Cowork) |
-| Version | `1.0.5` |
+| Version | `1.0.6` |
 | Bundle | Claude Skill suite + checkpoint Hook + hosted MCP configuration |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 browser sign-in with Dynamic Client Registration |
 | Requested scopes | `memory:read memory:write` |
-| Tools | XMemo Connector: 27 tools on Claude Code, the Claude app, and Cowork; direct MCP configuration: 35. The Skills call 17 |
+| Tools | The Skills call 17 tools, only on the plugin's own OAuth connection; they use no other connection's credentials |
 | MCP resources | None |
 | Local Hook state | Bounded metadata only under `CLAUDE_PLUGIN_DATA`; no transcript content |
 | License | MIT |
@@ -175,8 +175,8 @@ The plugin has three complementary components:
    `/mcp`, the Claude app and Cowork through the plugin's Connectors tab.
 4. The server advertises OAuth metadata, and Claude registers its client and
    runs the browser authorization.
-5. Every Claude surface uses the same XMemo Connector and its 27 tools; a
-   direct MCP configuration exposes 35. The Skills call 17 of them.
+5. The Skills call 17 tools, only on the plugin's own OAuth connection; they
+   use no other connection's credentials.
 6. Each tool reads or writes only data authorized for the signed-in XMemo
    account and requested scope.
 7. Claude reports the useful result without exposing tokens, internal traces,
@@ -262,9 +262,8 @@ never asks for credentials in the conversation.
 
 ## Tool surface
 
-Claude Code, the Claude app, and Cowork all use the same XMemo Connector,
-which exposes 27 tools. A direct MCP configuration of `https://xmemo.dev/mcp`
-exposes 35, including all 27. The Skills work with either and call these 17:
+The Skills call these 17 tools, only on the plugin's own OAuth connection, and
+use no other connection's credentials:
 
 | Area | Tools |
 |---|---|
@@ -275,10 +274,8 @@ exposes 35, including all 27. The Skills work with either and call these 17:
 | Decisions | `create_pending_decision`, `resolve_decision` |
 | Work tracking | `todo`, `update_state`, `record_event` |
 
-The other tools cover the expense ledger, older TODO tools, memory statistics,
-activity, and text analysis. No Skill depends on them; Claude uses them when
-the user asks for what they do. The Skills use no MCP resources, widget UI, bulk
-TODO deletion, or hidden legacy aliases.
+The Skills use no other tools, MCP resources, widget UI, bulk TODO deletion, or
+hidden legacy aliases.
 
 ## Capabilities and boundaries
 
@@ -401,7 +398,7 @@ Canonical service policies:
 - Nine-Skill professional workflow bundle: present.
 - Seven-event checkpoint Hook and regression tests: present.
 - OAuth MCP configuration: present.
-- All 17 tools the Skills call are on the 27-tool XMemo Connector, the same on Claude Code, the Claude app, and Cowork: verified.
+- The Skills call 17 tools, only on the plugin's own OAuth connection: verified.
 - MCP resources and widget UI: absent.
 - Package validator and CI: present.
 - Synthetic workflow prompts: present.
@@ -420,7 +417,7 @@ Canonical service policies:
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 + Dynamic Client Registration |
 | Scopes | `memory:read memory:write` |
-| Tools | XMemo Connector: 27 on every Claude surface; direct MCP configuration: 35; Skills call 17 |
+| Tools | Skills call 17, only on the plugin's own OAuth connection; no other connection's credentials |
 | Repository | `https://github.com/yonro/xmemo-claude-plugin` |
 | Directory state | Plugin published; connector under review |
 
