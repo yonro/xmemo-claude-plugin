@@ -91,6 +91,7 @@ Recall when prior decisions, preferences, constraints, TODOs, corrections, or pr
 - `search_memory` for an exact topic, phrase, path, or filter.
 - `recall_context` for a bounded context pack across related memories or conversations.
 - `get_project_context` for the latest bounded project state.
+- `read_memory` for the full text of one memory or saved document when an excerpt is not enough.
 - `todo` with `action=list` for relevant open actions.
 
 When the request names a time ("yesterday", "last week", "in September") or asks for the latest or most recent state, follow the time-aware rules in `references/tool-routing.md`: convert the time to an absolute window in the user's time zone (reading "last week" as the previous calendar week), pass `time_order=desc` for latest-first results, search by topic within the window when the question names a topic and keep `query_mode=activity_log` for topic-free "what happened" questions, treat a result count equal to the limit as possibly incomplete, and split ranges longer than 90 days.
@@ -108,6 +109,7 @@ Keep these concepts separate:
 | New durable knowledge, preference, decision, or procedure | `remember` |
 | Correction to an existing durable concept | `update_memory` |
 | Explicit formal project creation | `project` with `entity=project`, `action=create` |
+| Change an existing formal project's memories, decisions, document or conversation links, or settings | `project` with the matching `entity`/`action` and `project_id` (see the tool-routing reference) |
 | Concrete future action | `todo` with `action=create` |
 | Update, complete, or list actions | `todo` with `action=update`, `complete`, or `list` |
 | Unresolved choice | `create_pending_decision` |

@@ -4,7 +4,7 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-The host may show XMemo tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix.
+XMemo can be connected through the claude.ai XMemo Connector or through a direct MCP configuration that points at `https://xmemo.dev/mcp`. Both work the same way for the Skills. The host may show XMemo tools with a prefix, such as `mcp__claude_ai_XMemo__recall`, `mcp__xmemo__recall`, or `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix.
 
 Before reporting that XMemo is disconnected, check whether any XMemo tool is available. If none is, or a needed tool is missing:
 
@@ -28,9 +28,9 @@ Never ask for tokens, passwords, or authorization codes in the conversation, and
 - **Know the time axis.** Results show which time a filter used, such as `Axis: created_at`. Do not describe a memory as updated in a window when only its creation time was filtered.
 - **Report the window.** State the absolute window you used, in the user's time zone, so the user can correct it.
 
-## Signed Claude Code plugin tools
+## Tools the Skills call
 
-The plugin OAuth profile exposes exactly these 16 tools. The separately submitted Claude Directory Connector remains an independent 19-tool surface.
+The XMemo Connector exposes 27 tools on Claude Code, the Claude app, and Cowork; a direct MCP configuration exposes 35, a superset. The Skills route to these 17, which every XMemo connection has. For the remaining tools, see [Other XMemo tools](#other-xmemo-tools).
 
 ### Connection and memory lifecycle
 
@@ -51,22 +51,54 @@ The plugin OAuth profile exposes exactly these 16 tools. The separately submitte
 | Exact or scoped search | `search_memory` |
 | Bounded multi-memory context or resume | `recall_context` |
 | Bounded formal-project context | `get_project_context` |
+| Full text of one memory or a `document:<id>` result | `read_memory` |
+
+Use `read_memory` when a recalled excerpt is cut off and the rest matters, or when a result is a document, such as a saved plan, spec, or report, that the task needs in full. Pass the exact reference from the recall result. When the response has `has_more`, continue with the returned `revision` as `memory_id` and `next_offset`, so every page comes from the same version. For a long document, start at the relevant section with `anchor` instead of reading everything.
 
 ### Projects, decisions, TODOs, and progress
 
 | Intent | Tool |
 | --- | --- |
-| Create a formal project after an explicit request | `project` |
+| Create a formal project after an explicit request | `project` with `entity=project`, `action=create` |
+| Change an existing formal project (see the `project` actions below) | `project` with `project_id` |
 | Save an unresolved choice | `create_pending_decision` |
 | Close an exact pending choice | `resolve_decision` |
 | Create, update, complete, or list actions | `todo` |
 | Save or replace scoped working state | `update_state` |
 | Record a milestone or handoff event | `record_event` |
 
+### `project` actions
+
+`project` accepts exactly these `entity`/`action` pairs. Every pair except
+`project/create` needs the exact authorized `project_id`:
+
+| `entity` | `action` |
+| --- | --- |
+| `project` | `create` |
+| `memory` | `update`, `set_review_due` (pass `memory_ref` and `expected_version`) |
+| `decision` | `create`, `resolve`, `reopen`, `supersede` |
+| `document` | `link`, `update_metadata`, `set_availability`, `unlink` (documents can be linked, not created) |
+| `conversation` | `link`, `update_metadata`, `set_availability`, `unlink` |
+| `settings` | `save` |
+
+Use `get_project_context` for project reads. TODOs still go through `todo`.
+Plain memories outside a formal project still go through `remember` and
+`update_memory`. Any other pair is rejected as invalid input.
+
+## Other XMemo tools
+
+The connection usually has more tools than the Skills route, such as an expense ledger, memory counts and breakdowns, recent activity, and text-frequency analysis. No Skill depends on them, and their names vary with how XMemo is connected. When the user directly asks for something one of them covers, use it:
+
+- Confirm the tool is visible in the active connection and follow its own description and schema.
+- Treat writes, such as adding an expense, like any other XMemo write: only on the user's request, with a short receipt.
+- For TODOs, use `todo` rather than older TODO-specific tools.
+- If no visible tool covers the request, say so instead of approximating it with another tool.
+
 ## Safety rules
 
 - Never call a nonexistent tool or claim an unavailable capability succeeded.
-- `project` is limited to explicit formal project creation on this profile.
-- `todo` does not expose bulk deletion on this profile.
+- Create a formal `project` only after an explicit request. Change an existing project only with the pairs listed above and its exact `project_id`; `unlink`, `set_availability` and `supersede` change linked records, so confirm the exact target first.
+- `todo` does not expose bulk deletion.
+- `todo` with `action=list` needs `owner_timezone`, the user's IANA time zone such as `Asia/Tokyo`, when the account has no saved time zone. Use the best available signal and state the assumption; never default to UTC.
 - Never use hard deletion without the user's explicit irreversible-delete request and an exact target.
 - Never use one memory write to archive an entire raw conversation.

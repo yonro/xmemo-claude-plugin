@@ -15,7 +15,7 @@ Identify the plan version, intended outcome, project or scope, decision owner, r
 
 ## 2. Recover the authoritative context
 
-Use `recall_context` for the bounded decision set, `search_memory` for exact constraints or prior choices, `get_project_context` for project state, and `todo` for active commitments. Retrieve only what can materially affect the review.
+Use `recall_context` for the bounded decision set, `search_memory` for exact constraints or prior choices, `get_project_context` for project state, `read_memory` when a saved plan or decision record is needed in full, and `todo` for active commitments. Retrieve only what can materially affect the review.
 
 Resolve conflicts by current user instruction, verified evidence, recency, and scope. Memory is context, not automatic authority.
 

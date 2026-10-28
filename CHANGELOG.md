@@ -2,6 +2,15 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.5 - 2026-10-29
+
+- Document the full `project` contract: besides creating a formal project, `project` can change an authorized project's memories, decisions, document and conversation links, and settings through the listed `entity`/`action` pairs; documents can be linked, not created.
+- Add `read_memory` to the Skill tool set (now 17) for reading a memory or saved document in full when a recalled excerpt is not enough.
+- Add guidance for the other XMemo tools: Claude uses them when the user directly asks for what they do, without any Skill depending on them.
+- Support direct MCP configuration of `https://xmemo.dev/mcp` (35 tools) alongside the XMemo Connector.
+- Note that `todo` listing needs the user's IANA time zone when the account has none saved.
+- Correct the tool counts in the README and `tool-routing.md`: Claude Code, the Claude app, and Cowork all use the same 27-tool XMemo Connector. This replaces the earlier "isolated 16-tool profile", "19-tool Connector", and per-surface "19-tool plugin profile" statements.
+
 ## 1.0.4 - 2026-10-25
 
 - Rewrite the plugin description around XMemo's core positioning as the Memory OS for AI agents: one user-owned memory shared between Claude and other AI tools.
