@@ -2,6 +2,11 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.6 - 2026-10-29
+
+- Route the Skills only through the XMemo connection this plugin configures and authorizes itself. Remove the 1.0.5 guidance that let the Skills use the claude.ai XMemo Connector or a direct MCP configuration, and remove the "Other XMemo tools" guidance.
+- Keep `read_memory`, the documented `project` actions, and the `todo` time-zone note from 1.0.5.
+
 ## 1.0.5 - 2026-10-29
 
 - Document the full `project` contract: besides creating a formal project, `project` can change an authorized project's memories, decisions, document and conversation links, and settings through the listed `entity`/`action` pairs; documents can be linked, not created.

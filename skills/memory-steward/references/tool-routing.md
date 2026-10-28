@@ -4,7 +4,7 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-XMemo can be connected through the claude.ai XMemo Connector or through a direct MCP configuration that points at `https://xmemo.dev/mcp`. Both work the same way for the Skills. The host may show XMemo tools with a prefix, such as `mcp__claude_ai_XMemo__recall`, `mcp__xmemo__recall`, or `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix.
+The Skills use only the XMemo connection that this plugin configures and authorizes itself (`.mcp.json`, OAuth scopes `memory:read memory:write`). The host may show its tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix. Do not route the Skills through any other connection or its credentials.
 
 Before reporting that XMemo is disconnected, check whether any XMemo tool is available. If none is, or a needed tool is missing:
 
@@ -30,7 +30,7 @@ Never ask for tokens, passwords, or authorization codes in the conversation, and
 
 ## Tools the Skills call
 
-The XMemo Connector exposes 27 tools on Claude Code, the Claude app, and Cowork; a direct MCP configuration exposes 35, a superset. The Skills route to these 17, which every XMemo connection has. For the remaining tools, see [Other XMemo tools](#other-xmemo-tools).
+The Skills route only to these 17 tools on the plugin's own XMemo connection.
 
 ### Connection and memory lifecycle
 
@@ -84,15 +84,6 @@ Use `read_memory` when a recalled excerpt is cut off and the rest matters, or wh
 Use `get_project_context` for project reads. TODOs still go through `todo`.
 Plain memories outside a formal project still go through `remember` and
 `update_memory`. Any other pair is rejected as invalid input.
-
-## Other XMemo tools
-
-The connection usually has more tools than the Skills route, such as an expense ledger, memory counts and breakdowns, recent activity, and text-frequency analysis. No Skill depends on them, and their names vary with how XMemo is connected. When the user directly asks for something one of them covers, use it:
-
-- Confirm the tool is visible in the active connection and follow its own description and schema.
-- Treat writes, such as adding an expense, like any other XMemo write: only on the user's request, with a short receipt.
-- For TODOs, use `todo` rather than older TODO-specific tools.
-- If no visible tool covers the request, say so instead of approximating it with another tool.
 
 ## Safety rules
 
