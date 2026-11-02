@@ -4,7 +4,7 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-The Skills use only the XMemo connection that this plugin configures and authorizes itself (`.mcp.json`, OAuth scopes `memory:read memory:write`). The host may show its tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix. Do not route the Skills through any other connection or its credentials.
+The Skills use only the XMemo connection that this plugin configures and authorizes itself (`.mcp.json`, OAuth scopes `memory:read memory:write knowledge:read`). `knowledge:read` is read-only and lets `recall_context` include items from the user's XMemo Knowledge bases. The host may show its tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. Match tools by the names below, not by the prefix. Do not route the Skills through any other connection or its credentials.
 
 Before reporting that XMemo is disconnected, check whether any XMemo tool is available. If none is, or a needed tool is missing:
 
