@@ -8,7 +8,7 @@ Recall the context behind the work, preserve verified decisions and progress,
 and hand projects across sessions without archiving raw conversations.
 
 [![Validation](https://img.shields.io/github/actions/workflow/status/yonro/xmemo-claude-plugin/validate.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=validation)](https://github.com/yonro/xmemo-claude-plugin/actions/workflows/validate.yml)
-![Plugin version](https://img.shields.io/badge/plugin-v1.0.6-8B5CF6?style=flat-square)
+![Plugin version](https://img.shields.io/badge/plugin-v1.0.7-8B5CF6?style=flat-square)
 [![License](https://img.shields.io/github/license/yonro/xmemo-claude-plugin?style=flat-square)](LICENSE)
 ![Claude plugin](https://img.shields.io/badge/Claude-Anthropic%20Directory-D97757?style=flat-square)
 ![Hosted MCP](https://img.shields.io/badge/MCP-hosted-06B6D4?style=flat-square)
@@ -41,11 +41,11 @@ plugin's XMemo server as a custom connector (see [Quick start](#quick-start)).
 | Plugin ID | `xmemo` |
 | Skills | Nine professional workflows under `/xmemo:*` |
 | Automation | Fail-open lifecycle checkpoint Hook (Claude Code and Cowork) |
-| Version | `1.0.6` |
+| Version | `1.0.7` |
 | Bundle | Claude Skill suite + checkpoint Hook + hosted MCP configuration |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 browser sign-in with Dynamic Client Registration |
-| Requested scopes | `memory:read memory:write` |
+| Requested scopes | `memory:read memory:write knowledge:read` |
 | Tools | The Skills call 17 tools, only on the plugin's own OAuth connection; they use no other connection's credentials |
 | MCP resources | None |
 | Local Hook state | Bounded metadata only under `CLAUDE_PLUGIN_DATA`; no transcript content |
@@ -99,8 +99,8 @@ see [Use plugins in Claude](https://support.claude.com/en/articles/13837440-use-
 2. Open the plugin's **Connectors** tab and select **Connect** next to `xmemo`.
    Until the XMemo connector is listed in the directory, Claude offers to add it
    as a custom connector with `https://xmemo.dev/mcp` already filled in.
-3. Sign in to XMemo in the browser window and approve `memory:read` and
-   `memory:write`.
+3. Sign in to XMemo in the browser window and approve `memory:read`,
+   `memory:write`, and `knowledge:read`.
 4. Start a new conversation and run `/xmemo:get-started`, pick another Skill from
    the `/` menu, or ask naturally.
 
@@ -111,7 +111,7 @@ saves checkpoints only when a Skill or your request calls for one.
 
 1. Run `/plugin`, find **XMemo** in the marketplace, and install it.
 2. Run `/mcp`, select the XMemo server, and complete the browser sign-in for
-   `memory:read` and `memory:write`.
+   `memory:read`, `memory:write`, and `knowledge:read`.
 3. Run `/xmemo:get-started` to see what XMemo already knows about the current
    project and seed its first memories.
 4. Invoke a focused workflow such as `/xmemo:resume-work`, use
@@ -370,8 +370,10 @@ Synthetic evaluation prompts are maintained in
 - OAuth tokens stay in Claude's credential storage.
 - The repository contains no password, API key, bearer token, OAuth code,
   cookie, reviewer credential, or private memory.
-- The plugin pins `memory:read memory:write` rather than relying on broader
-  discovered scopes.
+- The plugin pins `memory:read memory:write knowledge:read` rather than relying
+  on broader discovered scopes. `knowledge:read` is read-only: it lets
+  `recall_context` include items from the user's XMemo Knowledge bases. The
+  plugin never requests `knowledge:write`.
 - The Hook uses the official exec-form `node` pattern, is fail-open, opens no
   network connection, spawns no subprocess, and keeps only bounded local state.
 - The Hook does not inspect or store Claude transcripts or tool responses.
@@ -416,7 +418,7 @@ Canonical service policies:
 | Service | `https://xmemo.dev` |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 + Dynamic Client Registration |
-| Scopes | `memory:read memory:write` |
+| Scopes | `memory:read memory:write knowledge:read` |
 | Tools | Skills call 17, only on the plugin's own OAuth connection; no other connection's credentials |
 | Repository | `https://github.com/yonro/xmemo-claude-plugin` |
 | Directory state | Plugin published; connector under review |

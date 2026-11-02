@@ -2,6 +2,12 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.7 - 2026-11-03
+
+- Request the read-only `knowledge:read` scope in addition to `memory:read memory:write`, so `recall_context` can include items from the user's XMemo Knowledge bases. XMemo v0.4.464 advertises the same three scopes in its MCP OAuth challenge. The plugin still never requests `knowledge:write`.
+- Existing connections keep their earlier grant: reconnect XMemo (`/mcp` in Claude Code, or the plugin's Connectors tab) to add `knowledge:read`.
+- Update the README, `PRIVACY.md`, `tool-routing.md`, the package validator, and the architecture diagram to match. The diagram now shows 17 tools, matching the README.
+
 ## 1.0.6 - 2026-10-29
 
 - Route the Skills only through the XMemo connection this plugin configures and authorizes itself. Remove the 1.0.5 guidance that let the Skills use the claude.ai XMemo Connector or a direct MCP configuration, and remove the "Other XMemo tools" guidance.

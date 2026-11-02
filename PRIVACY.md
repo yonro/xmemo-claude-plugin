@@ -25,6 +25,8 @@ authorized XMemo MCP connection.
 
 The service may process project context, decisions, preferences, working state, TODOs, handoff notes, and Ledger entries that the user chooses to send. This data supports recall, search, continuity, review, export, and user-directed lifecycle operations.
 
+With the `knowledge:read` scope, Claude may also read items from the user's XMemo Knowledge bases when they are relevant to a request. The plugin does not request `knowledge:write`, so it cannot create or change Knowledge content.
+
 ## Credentials
 
 - OAuth tokens are managed by Claude Code and must never be committed to this repository.
