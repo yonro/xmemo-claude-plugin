@@ -50,10 +50,11 @@
   <text x="652" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">OAuth MCP</text>
   <text x="652" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Dynamic Client Registration</text>
   <text x="652" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">memory:read · memory:write</text>
+  <text x="652" y="306" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">knowledge:read</text>
 
   <image href="icon.png" x="925" y="160" width="50" height="50" preserveAspectRatio="xMidYMid meet"/>
   <text x="927" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">XMemo</text>
-  <text x="927" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">16 focused tools · 0 resources</text>
+  <text x="927" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">17 focused tools · 0 resources</text>
   <text x="927" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Durable authorized context</text>
 
   <path d="M295 230H327" stroke="#7DD3FC" stroke-width="3" marker-end="url(#arrow)"/>

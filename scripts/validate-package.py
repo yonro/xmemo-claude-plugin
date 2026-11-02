@@ -196,8 +196,8 @@ def validate_mcp(errors: list[str]) -> None:
         fail(errors, ".mcp.json xmemo.type must be 'http'")
     if server.get("url") != "https://xmemo.dev/mcp":
         fail(errors, ".mcp.json must use the production XMemo MCP endpoint")
-    if server.get("oauth", {}).get("scopes") != "memory:read memory:write":
-        fail(errors, ".mcp.json must request exactly memory:read memory:write")
+    if server.get("oauth", {}).get("scopes") != "memory:read memory:write knowledge:read":
+        fail(errors, ".mcp.json must request exactly memory:read memory:write knowledge:read")
 
     encoded = json.dumps(config).lower()
     for forbidden in ("api_key", "xmemokey", "bearer ", "client_secret", "password"):
