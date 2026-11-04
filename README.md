@@ -8,7 +8,7 @@ Recall the context behind the work, preserve verified decisions and progress,
 and hand projects across sessions without archiving raw conversations.
 
 [![Validation](https://img.shields.io/github/actions/workflow/status/yonro/xmemo-claude-plugin/validate.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=validation)](https://github.com/yonro/xmemo-claude-plugin/actions/workflows/validate.yml)
-![Plugin version](https://img.shields.io/badge/plugin-v1.0.7-8B5CF6?style=flat-square)
+![Plugin version](https://img.shields.io/badge/plugin-v1.0.8-8B5CF6?style=flat-square)
 [![License](https://img.shields.io/github/license/yonro/xmemo-claude-plugin?style=flat-square)](LICENSE)
 ![Claude plugin](https://img.shields.io/badge/Claude-Anthropic%20Directory-D97757?style=flat-square)
 ![Hosted MCP](https://img.shields.io/badge/MCP-hosted-06B6D4?style=flat-square)
@@ -41,12 +41,12 @@ plugin's XMemo server as a custom connector (see [Quick start](#quick-start)).
 | Plugin ID | `xmemo` |
 | Skills | Nine professional workflows under `/xmemo:*` |
 | Automation | Fail-open lifecycle checkpoint Hook (Claude Code and Cowork) |
-| Version | `1.0.7` |
+| Version | `1.0.8` |
 | Bundle | Claude Skill suite + checkpoint Hook + hosted MCP configuration |
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 browser sign-in with Dynamic Client Registration |
 | Requested scopes | `memory:read memory:write knowledge:read` |
-| Tools | The Skills call 17 tools, only on the plugin's own OAuth connection; they use no other connection's credentials |
+| Tools | The Skills call 17 tools on the user's XMemo connection (the plugin's, or the claude.ai XMemo Connector that replaces it); never another server's |
 | MCP resources | None |
 | Local Hook state | Bounded metadata only under `CLAUDE_PLUGIN_DATA`; no transcript content |
 | License | MIT |
@@ -175,8 +175,9 @@ The plugin has three complementary components:
    `/mcp`, the Claude app and Cowork through the plugin's Connectors tab.
 4. The server advertises OAuth metadata, and Claude registers its client and
    runs the browser authorization.
-5. The Skills call 17 tools, only on the plugin's own OAuth connection; they
-   use no other connection's credentials.
+5. The Skills call 17 tools on the XMemo connection: the plugin's own, or the
+   claude.ai XMemo Connector that Claude Code shows in its place when both are
+   connected. They never use another server's tools or credentials.
 6. Each tool reads or writes only data authorized for the signed-in XMemo
    account and requested scope.
 7. Claude reports the useful result without exposing tokens, internal traces,
@@ -238,14 +239,19 @@ these boundaries is reached:
 - the previous session ended or failed with unsaved work.
 
 Claude then decides from the current verified context whether `update_state` is
-warranted. A successful `update_state` call from any connected XMemo server
-clears the pending marker. `record_event` remains reserved for significant
-milestones and handoffs. If XMemo is unavailable or no durable change exists,
-the Hook fails open and never fabricates a save.
+warranted. Only a recognized successful `update_state` receipt from XMemo clears the
+pending marker: from the plugin connection, or from the claude.ai XMemo
+Connector that Claude Code shows in its place when both are connected. The
+Hook does not select or validate a state slot: Skills keep their existing
+slot, including the default `active_task`. Same-named tools on other MCP
+servers do not clear it. Failed or unknown-format receipts leave the reminder pending. The
+Hook inspects only the bounded acknowledgement text and never persists tool
+responses. `record_event` remains reserved for significant milestones and
+handoffs. If XMemo is unavailable or no durable change exists, the Hook fails
+open and never fabricates a save.
 
-The Hook never opens `transcript_path`, does not inspect prompt, message, or tool
-response content, and never persists source contents, credentials, or raw
-transcripts.
+The Hook never opens `transcript_path` or inspects prompt or message content.
+It never persists source contents, credentials, or raw transcripts.
 
 ### When XMemo is not connected
 
@@ -262,8 +268,9 @@ never asks for credentials in the conversation.
 
 ## Tool surface
 
-The Skills call these 17 tools, only on the plugin's own OAuth connection, and
-use no other connection's credentials:
+The Skills call these 17 tools on the XMemo connection (the plugin's own, or the
+claude.ai XMemo Connector that replaces it when both are connected), and never
+another server's tools or credentials:
 
 | Area | Tools |
 |---|---|
@@ -334,6 +341,9 @@ assets, examples, and public documentation remain at the plugin root.
 
 ## Validation
 
+The following commands require a source repository checkout. The Directory
+package intentionally omits the validator and test scripts.
+
 Run the repository validator:
 
 ```bash
@@ -376,7 +386,8 @@ Synthetic evaluation prompts are maintained in
   plugin never requests `knowledge:write`.
 - The Hook uses the official exec-form `node` pattern, is fail-open, opens no
   network connection, spawns no subprocess, and keeps only bounded local state.
-- The Hook does not inspect or store Claude transcripts or tool responses.
+- The Hook never reads Claude transcripts or stores tool responses. It checks
+  only bounded checkpoint acknowledgement text.
 - Retrieved memory is treated as context to verify, not unquestionable truth.
 - Hard deletion is never inferred from ambiguous language.
 - Demos and review evidence must use synthetic data.
@@ -419,7 +430,7 @@ Canonical service policies:
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 + Dynamic Client Registration |
 | Scopes | `memory:read memory:write knowledge:read` |
-| Tools | Skills call 17, only on the plugin's own OAuth connection; no other connection's credentials |
+| Tools | Skills call 17 on the XMemo connection (plugin or claude.ai Connector); never another server's |
 | Repository | `https://github.com/yonro/xmemo-claude-plugin` |
 | Directory state | Plugin published; connector under review |
 

@@ -7,8 +7,8 @@ Use this reference to decide whether to save, update, checkpoint, preview, or sk
 | Signal | Action |
 | --- | --- |
 | Explicit request to remember one safe, unambiguous fact | Save with `remember`, or update the existing memory |
-| Stable preference useful in later conversations | Save and give a short receipt |
-| Final project decision with rationale | Save a durable decision |
+| Stable preference useful in later conversations | Offer to save; write after confirmation or an explicit safe, unambiguous remember request |
+| Final project decision with rationale | Offer to save a durable decision; write after confirmation or an explicit safe, unambiguous remember request |
 | Brainstorm options before a decision | Organize and review; do not save every option as truth |
 | Approved plan that will guide future work | Save the approved outcome, rationale, scope, and acceptance gate |
 | Progress claim from another agent | Preserve provenance; update verified state only after suitable evidence |
@@ -19,7 +19,7 @@ Use this reference to decide whether to save, update, checkpoint, preview, or sk
 | Concrete future action | Create a TODO |
 | Casual chat or one-turn detail | Skip |
 | Secret, credential, token, or highly sensitive identifier | Never save |
-| Financial transaction | Use the available Ledger tool, not generic memory |
+| Financial transaction | Explain that Ledger operations are outside this plugin; do not substitute generic memory or another connection |
 
 ## Good candidates
 

@@ -2,6 +2,12 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.8 - 2026-11-05
+
+- Clear the checkpoint reminder only on a recognized successful `update_state` receipt from XMemo, never on a failed call or a same-named tool from another server. Skills keep their existing state slots.
+- Accept the claude.ai XMemo Connector as well as the plugin connection, in the Skills and the Hook. When both are connected, Claude Code hides the plugin's copy of the same server, so the plugin-only rule from 1.0.6 left Skills unable to reach XMemo.
+- Align save consent, Ledger exclusions, and source-only validation documentation.
+
 ## 1.0.7 - 2026-11-03
 
 - Request the read-only `knowledge:read` scope in addition to `memory:read memory:write`, so `recall_context` can include items from the user's XMemo Knowledge bases. XMemo v0.4.464 advertises the same three scopes in its MCP OAuth challenge. The plugin still never requests `knowledge:write`.

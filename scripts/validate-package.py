@@ -192,6 +192,12 @@ def validate_manifest(errors: list[str]) -> None:
 def validate_mcp(errors: list[str]) -> None:
     config = load_json(MCP_CONFIG, errors)
     server = config.get("mcpServers", {}).get("xmemo", {})
+    expected_config = {"mcpServers": {"xmemo": {
+        "type": "http", "url": "https://xmemo.dev/mcp",
+        "oauth": {"scopes": "memory:read memory:write knowledge:read"},
+    }}}
+    if config != expected_config:
+        fail(errors, ".mcp.json must contain only the approved OAuth server fields")
     if server.get("type") != "http":
         fail(errors, ".mcp.json xmemo.type must be 'http'")
     if server.get("url") != "https://xmemo.dev/mcp":
@@ -250,7 +256,8 @@ def validate_hooks(errors: list[str]) -> None:
     for marker in (
         "stop_hook_active",
         "CLAUDE_PLUGIN_DATA",
-        "/^mcp__.+__update_state$/",
+        '"mcp__plugin_xmemo_xmemo__update_state"',
+        '"mcp__claude_ai_XMemo__update_state"',
         "raw transcripts",
     ):
         if marker not in source:

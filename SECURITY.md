@@ -18,7 +18,8 @@ For product support, contact `support@xmemo.dev` or visit https://xmemo.dev/supp
   tool call or session exit.
 - Hook state contains only bounded counters, timestamps, reason labels, and a
   project-path hash under `CLAUDE_PLUGIN_DATA`; it does not inspect or retain the
-  session transcript or tool results.
+  session transcript. It checks bounded checkpoint acknowledgement text without
+  retaining tool results.
 
 ## Repository hygiene
 
