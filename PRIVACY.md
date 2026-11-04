@@ -14,8 +14,9 @@ The XMemo Claude plugin connects Claude Code to the hosted XMemo MCP service. Th
 The plugin includes a Claude Code lifecycle Hook that helps prevent meaningful
 work from being lost between sessions. It stores only minimal local metadata in
 Claude's persistent plugin data directory: a project-path hash, activity counts,
-checkpoint reasons, timestamps, and an interruption marker. It does not inspect
-or persist the Claude transcript, prompts, assistant messages, tool responses,
+checkpoint reasons, timestamps, and an interruption marker. It inspects only
+bounded checkpoint acknowledgement text and never persists tool responses.
+It does not inspect or persist the Claude transcript, prompts, assistant messages,
 memory content, credentials, or source-file contents.
 
 The Hook never sends local metadata directly to XMemo. At a material checkpoint,
