@@ -79,7 +79,7 @@ Stay within the authenticated account and authorized scope. If XMemo is unavaila
 
 ## 2. Inspect capabilities before choosing a route
 
-Use only tools verified to belong to this plugin-authorized XMemo connection. After establishing connection ownership, match tool names within it using `references/tool-routing.md`. If ownership is unclear, treat the connection as unavailable. Never assume that a private, legacy, ChatGPT-widget, or future tool is available.
+Use only tools from an XMemo connection: the plugin's own connection or the claude.ai XMemo Connector that Claude Code shows in its place. Match tool names within it using `references/tool-routing.md`. Never use a same-named tool from another server. Never assume that a private, legacy, ChatGPT-widget, or future tool is available.
 
 Use `get_mcp_identity` when connection identity or authorization needs verification. Read `references/tool-routing.md` for the exact Claude Code plugin routing contract.
 

@@ -257,6 +257,7 @@ def validate_hooks(errors: list[str]) -> None:
         "stop_hook_active",
         "CLAUDE_PLUGIN_DATA",
         '"mcp__plugin_xmemo_xmemo__update_state"',
+        '"mcp__claude_ai_XMemo__update_state"',
         "raw transcripts",
     ):
         if marker not in source:

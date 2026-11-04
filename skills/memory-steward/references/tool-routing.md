@@ -4,9 +4,14 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-The Skills use only the XMemo connection that this plugin configures and authorizes itself (`.mcp.json`, OAuth scopes `memory:read memory:write knowledge:read`). `knowledge:read` is read-only and lets `recall_context` include items from the user's XMemo Knowledge bases. The host may show its tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. First verify the tool belongs to this plugin-authorized connection; only then match the tool names below within that connection. If ownership cannot be established, do not call it. Do not route the Skills through any other connection or its credentials.
+The Skills use the official XMemo service at `https://xmemo.dev/mcp`. This plugin configures it in `.mcp.json` with OAuth scopes `memory:read memory:write knowledge:read`; `knowledge:read` is read-only and lets `recall_context` include items from the user's XMemo Knowledge bases. When the user has also connected the claude.ai XMemo Connector, Claude Code hides the plugin's copy of the same server and exposes the Connector instead. Either one is the user's own XMemo account:
 
-Before reporting that XMemo is disconnected, check whether the required tool is available on this plugin-authorized connection. If none is, or a needed tool is missing:
+- the plugin connection, with tools such as `mcp__plugin_xmemo_xmemo__recall`;
+- the claude.ai XMemo Connector, with tools such as `mcp__claude_ai_XMemo__recall`.
+
+Match the tool names below within one of these two connections. Do not use a same-named tool from any other server, and do not route the Skills through any other connection or its credentials.
+
+Before reporting that XMemo is disconnected, check whether the required tool is available on either XMemo connection. If none is, or a needed tool is missing:
 
 1. Say plainly that nothing was read from or written to XMemo.
 2. Point the user to the host's connection control: run `/mcp` and sign in to XMemo in Claude Code, or open the XMemo plugin's Connectors tab and select Connect in the Claude app or Cowork.

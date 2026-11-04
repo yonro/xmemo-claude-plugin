@@ -120,6 +120,7 @@ try {
   // Neither foreign connections nor failed or ambiguous saves acknowledge.
   for (const overrides of [
     { tool_name: "mcp__aded79cf__update_state" },
+    { tool_name: "mcp__claude_ai_Other__update_state" },
     { tool_name: "mcp__other__update_state" },
     { tool_response: "Error: unavailable" },
     { tool_response: receipt(), is_error: true },
@@ -137,6 +138,12 @@ try {
   batch(["Write"]);
   assert.equal(pending(), true);
   acknowledge({ tool_response: liveToolResponse });
+  assert.equal(pending(), false);
+  // The claude.ai XMemo Connector replaces the plugin server when both exist.
+  batch(["Write"]);
+  assert.equal(pending(), true);
+  acknowledge({ tool_name: "mcp__claude_ai_XMemo__update_state",
+                tool_response: liveToolResponse });
   assert.equal(pending(), false);
   for (const overrides of [
     { tool_input: {} }, // Skills may rely on the default active_task slot.

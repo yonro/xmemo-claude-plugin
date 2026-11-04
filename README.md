@@ -46,7 +46,7 @@ plugin's XMemo server as a custom connector (see [Quick start](#quick-start)).
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 browser sign-in with Dynamic Client Registration |
 | Requested scopes | `memory:read memory:write knowledge:read` |
-| Tools | The Skills call 17 tools, only on the plugin's own OAuth connection; they use no other connection's credentials |
+| Tools | The Skills call 17 tools on the user's XMemo connection (the plugin's, or the claude.ai XMemo Connector that replaces it); never another server's |
 | MCP resources | None |
 | Local Hook state | Bounded metadata only under `CLAUDE_PLUGIN_DATA`; no transcript content |
 | License | MIT |
@@ -175,8 +175,9 @@ The plugin has three complementary components:
    `/mcp`, the Claude app and Cowork through the plugin's Connectors tab.
 4. The server advertises OAuth metadata, and Claude registers its client and
    runs the browser authorization.
-5. The Skills call 17 tools, only on the plugin's own OAuth connection; they
-   use no other connection's credentials.
+5. The Skills call 17 tools on the XMemo connection: the plugin's own, or the
+   claude.ai XMemo Connector that Claude Code shows in its place when both are
+   connected. They never use another server's tools or credentials.
 6. Each tool reads or writes only data authorized for the signed-in XMemo
    account and requested scope.
 7. Claude reports the useful result without exposing tokens, internal traces,
@@ -238,11 +239,12 @@ these boundaries is reached:
 - the previous session ended or failed with unsaved work.
 
 Claude then decides from the current verified context whether `update_state` is
-warranted. Only a recognized successful `update_state` receipt from the plugin-
-owned connection clears the pending marker. The Hook does not select or validate
-a state slot: Skills keep their existing slot, including the default
-`active_task`. Saves through the claude.ai Connector or other MCP connections do
-not clear it. Failed or unknown-format receipts leave the reminder pending. The
+warranted. Only a recognized successful `update_state` receipt from XMemo clears the
+pending marker: from the plugin connection, or from the claude.ai XMemo
+Connector that Claude Code shows in its place when both are connected. The
+Hook does not select or validate a state slot: Skills keep their existing
+slot, including the default `active_task`. Same-named tools on other MCP
+servers do not clear it. Failed or unknown-format receipts leave the reminder pending. The
 Hook inspects only the bounded acknowledgement text and never persists tool
 responses. `record_event` remains reserved for significant milestones and
 handoffs. If XMemo is unavailable or no durable change exists, the Hook fails
@@ -266,8 +268,9 @@ never asks for credentials in the conversation.
 
 ## Tool surface
 
-The Skills call these 17 tools, only on the plugin's own OAuth connection, and
-use no other connection's credentials:
+The Skills call these 17 tools on the XMemo connection (the plugin's own, or the
+claude.ai XMemo Connector that replaces it when both are connected), and never
+another server's tools or credentials:
 
 | Area | Tools |
 |---|---|
@@ -427,7 +430,7 @@ Canonical service policies:
 | MCP endpoint | `https://xmemo.dev/mcp` |
 | Authentication | OAuth 2.0 + Dynamic Client Registration |
 | Scopes | `memory:read memory:write knowledge:read` |
-| Tools | Skills call 17, only on the plugin's own OAuth connection; no other connection's credentials |
+| Tools | Skills call 17 on the XMemo connection (plugin or claude.ai Connector); never another server's |
 | Repository | `https://github.com/yonro/xmemo-claude-plugin` |
 | Directory state | Plugin published; connector under review |
 
