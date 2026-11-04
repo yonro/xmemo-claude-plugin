@@ -2,13 +2,14 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "xmemo",
   "displayName": "XMemo",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "XMemo is the Memory OS for AI agents. Give Claude a user-owned memory it shares with your other AI tools, so you can switch AIs and keep everything: projects, decisions, preferences, and progress.",
   "author": {
     "name": "XMemo",
     "email": "support@xmemo.dev",
     "url": "https://xmemo.dev"
   },
+  "icon": "./assets/icon.png",
   "homepage": "https://xmemo.dev/integrations/claude",
   "privacyPolicyUrl": "https://xmemo.dev/legal/privacy",
   "termsOfServiceUrl": "https://xmemo.dev/legal/tos",
