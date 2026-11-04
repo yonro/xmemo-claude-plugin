@@ -2,6 +2,11 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.9 - 2026-11-05
+
+- Stop referring to bundled image files by path: the README package listing no longer names the assets, and the architecture SVG draws its XMemo mark instead of loading `icon.png`. The directory holds a version for review when a code block or a file in the plugin points at a bundled image. The images themselves are unchanged.
+- No functional change. The plugin still requests the read-only `knowledge:read` scope added in 1.0.7.
+
 ## 1.0.8 - 2026-11-05
 
 - Clear the checkpoint reminder only on a recognized successful `update_state` receipt from XMemo, never on a failed call or a same-named tool from another server. Skills keep their existing state slots.

@@ -52,7 +52,8 @@
   <text x="652" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">memory:read · memory:write</text>
   <text x="652" y="306" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">knowledge:read</text>
 
-  <image href="icon.png" x="925" y="160" width="50" height="50" preserveAspectRatio="xMidYMid meet"/>
+  <rect x="925" y="160" width="50" height="50" rx="12" fill="#8B5CF6"/>
+  <text x="950" y="195" text-anchor="middle" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28" font-weight="700">X</text>
   <text x="927" y="232" fill="#F8FAFC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" font-weight="700">XMemo</text>
   <text x="927" y="260" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">17 focused tools · 0 resources</text>
   <text x="927" y="283" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14">Durable authorized context</text>
