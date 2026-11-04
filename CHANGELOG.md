@@ -2,7 +2,7 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
-## Unreleased
+## 1.0.8 - 2026-11-05
 
 - Clear the checkpoint reminder only on a recognized successful `update_state` receipt from XMemo, never on a failed call or a same-named tool from another server. Skills keep their existing state slots.
 - Accept the claude.ai XMemo Connector as well as the plugin connection, in the Skills and the Hook. When both are connected, Claude Code hides the plugin's copy of the same server, so the plugin-only rule from 1.0.6 left Skills unable to reach XMemo.
