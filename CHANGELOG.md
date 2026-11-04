@@ -4,7 +4,7 @@ All notable changes to the XMemo Claude plugin are documented here.
 
 ## 1.0.9 - 2026-11-05
 
-- Stop referring to bundled image files by path: the README package listing no longer names the assets, and the architecture SVG draws its XMemo mark instead of loading `icon.png`. The directory holds a version for review when a code block or a file in the plugin points at a bundled image. The images themselves are unchanged.
+- Stop referring to bundled image files by path: the README package listing no longer names the assets, and the architecture SVG embeds the XMemo icon inline instead of loading it from a separate file. The directory holds a version for review when a code block or a file in the plugin points at a bundled image. The images themselves are unchanged.
 - Declare `icon` in `plugin.json` so the directory listing shows the XMemo logo. Claude Code ignores this field.
 - No functional change. The plugin still requests the read-only `knowledge:read` scope added in 1.0.7.
 
