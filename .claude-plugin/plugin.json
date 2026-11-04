@@ -9,6 +9,7 @@
     "email": "support@xmemo.dev",
     "url": "https://xmemo.dev"
   },
+  "icon": "./assets/icon.png",
   "homepage": "https://xmemo.dev/integrations/claude",
   "privacyPolicyUrl": "https://xmemo.dev/legal/privacy",
   "termsOfServiceUrl": "https://xmemo.dev/legal/tos",
