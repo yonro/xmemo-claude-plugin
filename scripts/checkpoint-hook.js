@@ -11,9 +11,8 @@ const CHECKPOINT_INTERVAL_MS = 15 * 60 * 1000;
 const PROMPT_COOLDOWN_MS = 10 * 60 * 1000;
 const ACTIVITY_THRESHOLD = 6;
 
-// Hosts name the XMemo server differently (plugin, project config, or a connector
-// id), so any MCP server's update_state counts as a saved checkpoint.
-const XMEMO_UPDATE_STATE = /^mcp__.+__update_state$/;
+// Only the plugin-owned connection may acknowledge its checkpoint reminder.
+const XMEMO_UPDATE_STATE = "mcp__plugin_xmemo_xmemo__update_state";
 const WRITE_TOOLS = new Set(["Edit", "Write", "NotebookEdit", "MultiEdit"]);
 const WORK_TOOLS = new Set([
   ...WRITE_TOOLS,
@@ -134,16 +133,52 @@ function clearCheckpoint(state) {
   state.recovery = null;
 }
 
+function checkpointSaved(call) {
+  if (!call || call.tool_name !== XMEMO_UPDATE_STATE ||
+      call.is_error === true || call.isError === true) return false;
+  // PostToolBatch supplies serialized text or text content blocks. Inspect only
+  // a bounded receipt; never retain it or impose a new state slot on Skills.
+  const response = call.tool_response;
+  let text;
+  if (typeof response === "string") text = response;
+  else if (Array.isArray(response) && response.length > 0 && response.length <= 16) {
+    const parts = [];
+    let length = 0;
+    for (const block of response) {
+      if (block?.type !== "text" || typeof block.text !== "string") return false;
+      length += block.text.length + 1;
+      if (length > 4096) return false;
+      parts.push(block.text);
+    }
+    text = parts.join("\n");
+  }
+  if (typeof text !== "string" || text.length > 4096) return false;
+  try {
+    const envelope = JSON.parse(text);
+    if (envelope && typeof envelope === "object" && !Array.isArray(envelope) &&
+        Object.keys(envelope).length === 1 && typeof envelope.result === "string") {
+      text = envelope.result;
+    }
+  } catch {
+    // Claude may provide the receipt as plain text instead of a JSON envelope.
+  }
+  if (text.length > 4096) return false;
+  const lines = text.trim().split(/\r?\n/).map(line => line.trim());
+  const statuses = lines.filter(line => /^Status\s*:/i.test(line));
+  return /^✅\s+Working state updated[.!]?$/.test(lines[0] || "") &&
+    statuses.length === 1 && /^Status:\s*(created|updated)$/.test(statuses[0]);
+}
+
 function handleToolBatch(input, state) {
   const calls = Array.isArray(input.tool_calls) ? input.tool_calls : [];
   let activities = 0;
   let writes = 0;
-  let checkpointSaved = false;
+  let saved = false;
 
   for (const call of calls) {
     const toolName = String(call && call.tool_name ? call.tool_name : "");
-    if (XMEMO_UPDATE_STATE.test(toolName)) {
-      checkpointSaved = true;
+    if (checkpointSaved(call)) {
+      saved = true;
       continue;
     }
     if (WORK_TOOLS.has(toolName)) {
@@ -154,7 +189,7 @@ function handleToolBatch(input, state) {
     }
   }
 
-  if (checkpointSaved) {
+  if (saved) {
     clearCheckpoint(state);
   }
   if (activities > 0) {
@@ -212,13 +247,16 @@ function onStop(input, state) {
       hookEventName: "Stop",
       additionalContext:
         `XMemo checkpoint due (${reasons}). Before ending, determine whether the ` +
-        "verified project state materially changed. If it did, use XMemo update_state " +
+        "verified project state materially changed. If it did, use the plugin-owned " +
+        "XMemo update_state using the project's existing state slot (default active_task) " +
         "to replace the scoped working checkpoint with the objective, verified status " +
         "and evidence, completed work, settled decisions, blocker, relevant artifacts, " +
         "provenance, and one exact next action. Use record_event only for a significant " +
         "milestone or handoff. Do not save raw transcripts, secrets, speculative claims, " +
         "or verbose reasoning. If no durable change exists or XMemo is unavailable, say " +
-        "so briefly and do not fabricate a successful save."
+        "so briefly and do not fabricate a successful save. If the plugin-owned " +
+        "connection is not authorized, ask the user to authorize it through /mcp. " +
+        "Saving through the claude.ai Connector does not clear this reminder."
     }
   };
 }

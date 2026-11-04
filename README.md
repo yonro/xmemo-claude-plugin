@@ -238,14 +238,18 @@ these boundaries is reached:
 - the previous session ended or failed with unsaved work.
 
 Claude then decides from the current verified context whether `update_state` is
-warranted. A successful `update_state` call from any connected XMemo server
-clears the pending marker. `record_event` remains reserved for significant
-milestones and handoffs. If XMemo is unavailable or no durable change exists,
-the Hook fails open and never fabricates a save.
+warranted. Only a recognized successful `update_state` receipt from the plugin-
+owned connection clears the pending marker. The Hook does not select or validate
+a state slot: Skills keep their existing slot, including the default
+`active_task`. Saves through the claude.ai Connector or other MCP connections do
+not clear it. Failed or unknown-format receipts leave the reminder pending. The
+Hook inspects only the bounded acknowledgement text and never persists tool
+responses. `record_event` remains reserved for significant milestones and
+handoffs. If XMemo is unavailable or no durable change exists, the Hook fails
+open and never fabricates a save.
 
-The Hook never opens `transcript_path`, does not inspect prompt, message, or tool
-response content, and never persists source contents, credentials, or raw
-transcripts.
+The Hook never opens `transcript_path` or inspects prompt or message content.
+It never persists source contents, credentials, or raw transcripts.
 
 ### When XMemo is not connected
 
@@ -334,6 +338,9 @@ assets, examples, and public documentation remain at the plugin root.
 
 ## Validation
 
+The following commands require a source repository checkout. The Directory
+package intentionally omits the validator and test scripts.
+
 Run the repository validator:
 
 ```bash
@@ -376,7 +383,8 @@ Synthetic evaluation prompts are maintained in
   plugin never requests `knowledge:write`.
 - The Hook uses the official exec-form `node` pattern, is fail-open, opens no
   network connection, spawns no subprocess, and keeps only bounded local state.
-- The Hook does not inspect or store Claude transcripts or tool responses.
+- The Hook never reads Claude transcripts or stores tool responses. It checks
+  only bounded checkpoint acknowledgement text.
 - Retrieved memory is treated as context to verify, not unquestionable truth.
 - Hard deletion is never inferred from ambiguous language.
 - Demos and review evidence must use synthetic data.

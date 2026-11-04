@@ -2,6 +2,11 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## Unreleased
+
+- Bind checkpoint acknowledgements to the plugin connection and a bounded success receipt without changing Skills’ state slots.
+- Align connection ownership, save consent, Ledger exclusions, and source-only validation documentation.
+
 ## 1.0.7 - 2026-11-03
 
 - Request the read-only `knowledge:read` scope in addition to `memory:read memory:write`, so `recall_context` can include items from the user's XMemo Knowledge bases. XMemo v0.4.464 advertises the same three scopes in its MCP OAuth challenge. The plugin still never requests `knowledge:write`.
