@@ -19,6 +19,7 @@
     ".gitattributes",
     ".gitignore",
     ".github/**",
+    "docs/**",
     "scripts/test-checkpoint-hook.js",
     "scripts/validate-package.py"
   ],

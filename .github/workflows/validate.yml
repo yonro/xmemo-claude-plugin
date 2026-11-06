@@ -72,7 +72,7 @@ jobs:
         run: python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
       - name: Checkpoint hook tests on the artifact
         env:
-          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+          XMEMO_PLUGIN_ROOT: ${{ runner.temp }}/stage
         run: node scripts/test-checkpoint-hook.js
       - name: Artifact changes against claude-directory
         env:
@@ -142,7 +142,7 @@ jobs:
       - name: Gates on the fixture artifact (compat, validator, strict, hooks)
         env:
           TREE: ${{ steps.build.outputs.tree }}
-          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+          XMEMO_PLUGIN_ROOT: ${{ runner.temp }}/stage
         run: |
           set -euo pipefail
           python "$BUILDER" compat --tree "$TREE"

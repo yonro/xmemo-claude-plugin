@@ -2,6 +2,15 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## Unreleased - spike, not for release
+
+Design spike for the Directory rule "Hooks of type 'command' accepted only from Verified organizations". See `docs/design/checkpoint-without-command-hooks.md` in the source repository.
+
+- Replace the seven command hooks and `scripts/checkpoint-hook.js` with one prompt-based Stop hook. A Claude model reads the Stop hook input and asks Claude to continue once only when the final message reports a project milestone without an `XMemo checkpoint:` status line. No local program runs and no local state is kept.
+- Add `/xmemo:checkpoint` to save one verified working checkpoint on demand, and a checkpoint status-line rule to `memory-steward`.
+- Lost compared with the command hook: interrupted-session recovery at session start, the pre-compaction checkpoint, the activity and time thresholds, the reminder cooldown, and verification of the `update_state` receipt.
+- The package validator now accepts only the prompt-based Stop hook and rejects any command hook; `scripts/test-checkpoint-hook.js` now holds contract tests for it.
+
 ## 1.0.10 - 2026-11-06
 
 - Use only the plugin's own OAuth connection again, in the Skills and the Hook. Revert the 1.0.8 change that let them use the claude.ai XMemo Connector, which the directory policy review flagged as forwarding a credential the plugin did not obtain. Only a successful `update_state` receipt from the plugin connection clears the checkpoint reminder; the receipt validation from 1.0.8 stays.

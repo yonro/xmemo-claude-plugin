@@ -9,20 +9,22 @@ The XMemo Claude plugin connects Claude Code to the hosted XMemo MCP service. Th
 3. Claude may retrieve scoped XMemo content relevant to the user's request.
 4. Claude may create or modify XMemo data only when the user or active workflow requests it.
 
-## Local checkpoint metadata
+## Checkpoint check
 
-The plugin includes a Claude Code lifecycle Hook that helps prevent meaningful
-work from being lost between sessions. It stores only minimal local metadata in
-Claude's persistent plugin data directory: a project-path hash, activity counts,
-checkpoint reasons, timestamps, and an interruption marker. It inspects only
-bounded checkpoint acknowledgement text and never persists tool responses.
-It does not inspect or persist the Claude transcript, prompts, assistant messages,
-memory content, credentials, or source-file contents.
+The plugin includes a prompt-based Stop Hook that helps prevent meaningful work
+from being lost between sessions. It runs no local program and stores nothing on
+the user's machine. When a turn ends, Claude Code makes one extra Claude model
+call, as it does for any prompt-based hook, under the user's own Claude account.
+That call receives the Stop hook input (session identifiers, the working
+directory, the turn's final assistant message, and pending background tasks or
+scheduled jobs). In Claude Code 2.1.318 it also receives the current
+conversation as context. The model uses it only to decide whether to ask Claude
+to save a checkpoint, and nothing from it is stored or sent to XMemo.
 
-The Hook never sends local metadata directly to XMemo. At a material checkpoint,
-it gives Claude one continuation reminder. Claude then applies the active Skill's
-verification and memory policy before any `update_state` call is made through the
-authorized XMemo MCP connection.
+The Hook never sends anything to XMemo. When a turn reports a project milestone
+without a checkpoint status, it gives Claude one continuation reminder. Claude
+then applies the active Skill's verification and memory policy before any
+`update_state` call is made through the authorized XMemo MCP connection.
 
 The service may process project context, decisions, preferences, working state, TODOs, handoff notes, and Ledger entries that the user chooses to send. This data supports recall, search, continuity, review, export, and user-directed lifecycle operations.
 

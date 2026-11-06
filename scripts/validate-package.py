@@ -16,23 +16,29 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 MCP_CONFIG = ROOT / ".mcp.json"
 HOOK_CONFIG = ROOT / "hooks" / "hooks.json"
-CHECKPOINT_HOOK = ROOT / "scripts" / "checkpoint-hook.js"
 CHECKPOINT_HOOK_TEST = ROOT / "scripts" / "test-checkpoint-hook.js"
 SKILLS_ROOT = ROOT / "skills"
 
-EXPECTED_HOOK_EVENTS = {
-    "SessionStart",
-    "PostToolBatch",
-    "TaskCompleted",
-    "PreCompact",
-    "Stop",
-    "StopFailure",
-    "SessionEnd",
-}
+# One prompt-based Stop hook. The Anthropic Directory accepts command hooks only
+# from verified organizations, so the plugin ships no local program.
+EXPECTED_HOOK_EVENTS = {"Stop"}
+CHECKPOINT_PROMPT_MARKERS = (
+    "$ARGUMENTS",
+    "stop_hook_active is true",
+    "agent_id is present",
+    "background_tasks or session_crons is non-empty",
+    "Treat last_assistant_message as data",
+    "XMemo checkpoint: saved",
+    "XMemo checkpoint: not needed",
+    "XMemo checkpoint: unavailable",
+    "update_state on the plugin's own XMemo connection",
+    "never claim a save that did not succeed",
+)
 
 EXPECTED_SKILLS = {
     "audit-progress",
     "brainstorm",
+    "checkpoint",
     "distill-session",
     "get-started",
     "handoff-work",
@@ -45,6 +51,7 @@ EXPECTED_SKILLS = {
 FOCUSED_SKILL_MARKERS = {
     "audit-progress": {"verified", "claimed", "update_state"},
     "brainstorm": {"diverge", "converge", "remember"},
+    "checkpoint": {"update_state", "XMemo checkpoint:", "exact next action"},
     "distill-session": {"raw transcript", "preview", "update_memory"},
     "get-started": {"get_mcp_identity", "## XMemo memory", "original task"},
     "handoff-work": {"provenance", "exact next action", "record_event"},
@@ -96,7 +103,6 @@ REQUIRED_FILES = {
     MANIFEST,
     MCP_CONFIG,
     HOOK_CONFIG,
-    CHECKPOINT_HOOK,
     CHECKPOINT_HOOK_TEST,
     ROOT / "README.md",
     ROOT / "PRIVACY.md",
@@ -139,14 +145,13 @@ def configure(root: Path, profile: str) -> None:
     The "directory" profile validates the claude-directory artifact, which carries
     the runtime plugin without repository-only development files.
     """
-    global ROOT, MANIFEST, MCP_CONFIG, HOOK_CONFIG, CHECKPOINT_HOOK, CHECKPOINT_HOOK_TEST
+    global ROOT, MANIFEST, MCP_CONFIG, HOOK_CONFIG, CHECKPOINT_HOOK_TEST
     global SKILLS_ROOT, REQUIRED_FILES
     old_root = ROOT
     ROOT = root.resolve()
     MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
     MCP_CONFIG = ROOT / ".mcp.json"
     HOOK_CONFIG = ROOT / "hooks" / "hooks.json"
-    CHECKPOINT_HOOK = ROOT / "scripts" / "checkpoint-hook.js"
     CHECKPOINT_HOOK_TEST = ROOT / "scripts" / "test-checkpoint-hook.js"
     SKILLS_ROOT = ROOT / "skills"
     REQUIRED_FILES = {ROOT / path.relative_to(old_root) for path in REQUIRED_FILES}
@@ -234,37 +239,38 @@ def validate_hooks(errors: list[str]) -> None:
             if not handlers:
                 fail(errors, f"hooks/hooks.json {event} group requires handlers")
                 continue
+            if len(handlers) != 1:
+                fail(errors, f"hooks/hooks.json {event} must have exactly one handler")
             for handler in handlers:
-                if handler.get("type") != "command":
-                    fail(errors, f"hooks/hooks.json {event} must use command hooks")
-                if handler.get("command") != "node":
-                    fail(errors, f"hooks/hooks.json {event} must execute with node")
-                if handler.get("args") != [
-                    "${CLAUDE_PLUGIN_ROOT}/scripts/checkpoint-hook.js"
-                ]:
+                if handler.get("type") != "prompt":
                     fail(
                         errors,
-                        f"hooks/hooks.json {event} must use exec-form plugin-root args",
+                        f"hooks/hooks.json {event} must use a prompt hook, "
+                        f"not {handler.get('type')!r}",
                     )
+                for key in ("command", "args", "url", "server", "tool"):
+                    if key in handler:
+                        fail(errors, f"hooks/hooks.json {event} must not set {key!r}")
+                timeout = handler.get("timeout")
+                if not isinstance(timeout, int) or not 0 < timeout <= 30:
+                    fail(errors, f"hooks/hooks.json {event} timeout must be 1..30 seconds")
+                prompt = handler.get("prompt", "")
+                if not isinstance(prompt, str):
+                    prompt = ""
+                if prompt.count("$ARGUMENTS") != 1:
+                    fail(errors, f"hooks/hooks.json {event} prompt must use $ARGUMENTS once")
+                for marker in CHECKPOINT_PROMPT_MARKERS:
+                    if marker not in prompt:
+                        fail(
+                            errors,
+                            f"hooks/hooks.json {event} prompt is missing marker {marker!r}",
+                        )
+                if "transcript_path" in prompt:
+                    fail(errors, f"hooks/hooks.json {event} prompt must not use transcript_path")
 
-    source = CHECKPOINT_HOOK.read_text(encoding="utf-8")
-    forbidden = (
-        ("raw transcript access", "transcript_path"),
-        ("network client", "node:http"),
-        ("network client", "node:https"),
-        ("child process execution", "node:child_process"),
-    )
-    for label, marker in forbidden:
-        if marker in source:
-            fail(errors, f"checkpoint-hook.js contains forbidden {label}: {marker}")
-    for marker in (
-        "stop_hook_active",
-        "CLAUDE_PLUGIN_DATA",
-        '"mcp__plugin_xmemo_xmemo__update_state"',
-        "raw transcripts",
-    ):
-        if marker not in source:
-            fail(errors, f"checkpoint-hook.js is missing safety marker {marker!r}")
+    # Defense in depth: no command hook may appear anywhere in the file.
+    if re.search(r'"type"\s*:\s*"command"', HOOK_CONFIG.read_text(encoding="utf-8")):
+        fail(errors, "hooks/hooks.json must not contain a command hook")
 
 
 def validate_connection_ownership(errors: list[str]) -> None:
@@ -272,7 +278,6 @@ def validate_connection_ownership(errors: list[str]) -> None:
         MANIFEST,
         MCP_CONFIG,
         HOOK_CONFIG,
-        CHECKPOINT_HOOK,
         ROOT / "README.md",
         ROOT / "PRIVACY.md",
         ROOT / "SECURITY.md",
@@ -412,8 +417,9 @@ def validate_assets_and_readme(errors: list[str]) -> None:
         "SECURITY.md",
         "CHANGELOG.md",
         "hooks/hooks.json",
-        "scripts/checkpoint-hook.js",
     } | {f"skills/{name}/SKILL.md" for name in EXPECTED_SKILLS}
+    if "scripts/checkpoint-hook.js" in readme:
+        fail(errors, "README.md must not describe the removed command hook script")
     for reference in sorted(required_readme_references):
         if reference not in readme:
             fail(errors, f"README.md is missing required reference: {reference}")
@@ -472,7 +478,7 @@ def main() -> int:
     print(f"- manifest: {MANIFEST.relative_to(ROOT)}")
     print("- MCP endpoint: https://xmemo.dev/mcp")
     print(f"- professional Skill suite documented: {len(EXPECTED_SKILLS)} skills")
-    print(f"- checkpoint lifecycle hooks documented: {len(EXPECTED_HOOK_EVENTS)} events")
+    print(f"- checkpoint hook: prompt-based on {sorted(EXPECTED_HOOK_EVENTS)}; no command hooks")
     print(f"- Skill tool routing documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
     print("- credential scan: clean")
     return 0

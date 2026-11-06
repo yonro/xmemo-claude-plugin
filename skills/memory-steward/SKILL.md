@@ -172,6 +172,16 @@ Use `update_state` to create or replace one scoped checkpoint. Include:
 
 Search for the existing scoped checkpoint first and update it when possible so stale states do not accumulate.
 
+### Checkpoint status line
+
+Checkpoint proactively; do not wait to be reminded. When a turn completes a material milestone of project work (a task or feature finished, a fix verified, tests passing after changes, a commit, pull request, or release, a blocker reached after substantial work, or a settled decision), decide before the final message whether the verified project state materially changed, then end that final message with exactly one status line:
+
+- `XMemo checkpoint: saved` only after `update_state` on the plugin's own connection returned a successful receipt in this turn;
+- `XMemo checkpoint: not needed` when nothing durable changed, or the current checkpoint already covers the work;
+- `XMemo checkpoint: unavailable` when the plugin connection is not authorized; suggest `/mcp`.
+
+Never write `saved` for a failed, skipped, or assumed save. Omit the line on turns that only answer, explain, explore, or plan. In Claude Code and Cowork, a prompt-based Stop check reads only the final message: when it reports a milestone without this line, Claude is asked once to decide and add it. The user can run `/xmemo:checkpoint` at any time.
+
 ## 8. Resume deterministically
 
 1. Identify the project or authorized scope.
