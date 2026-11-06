@@ -128,6 +128,10 @@ SECRET_PATTERNS = {
     ),
 }
 
+# Skills and the Hook use only the plugin's own OAuth connection, never the
+# claude.ai Connector's tools (mcp__claude_ai_*) or its credentials.
+FOREIGN_CONNECTION_TOOL = re.compile(r"claude_ai_", re.IGNORECASE)
+
 
 def configure(root: Path, profile: str) -> None:
     """Point the validator at another plugin root, such as a staged release tree.
@@ -257,11 +261,31 @@ def validate_hooks(errors: list[str]) -> None:
         "stop_hook_active",
         "CLAUDE_PLUGIN_DATA",
         '"mcp__plugin_xmemo_xmemo__update_state"',
-        '"mcp__claude_ai_XMemo__update_state"',
         "raw transcripts",
     ):
         if marker not in source:
             fail(errors, f"checkpoint-hook.js is missing safety marker {marker!r}")
+
+
+def validate_connection_ownership(errors: list[str]) -> None:
+    runtime_files = [
+        MANIFEST,
+        MCP_CONFIG,
+        HOOK_CONFIG,
+        CHECKPOINT_HOOK,
+        ROOT / "README.md",
+        ROOT / "PRIVACY.md",
+        ROOT / "SECURITY.md",
+        *sorted(SKILLS_ROOT.rglob("*.md")),
+        *sorted((ROOT / "examples").rglob("*.md")),
+    ]
+    for path in runtime_files:
+        if FOREIGN_CONNECTION_TOOL.search(path.read_text(encoding="utf-8")):
+            fail(
+                errors,
+                f"{path.relative_to(ROOT)} must not route through the claude.ai "
+                "Connector (claude_ai_*); use only the plugin's own connection",
+            )
 
 
 def parse_frontmatter(path: Path, errors: list[str]) -> tuple[dict[str, str], str]:
@@ -433,6 +457,7 @@ def main() -> int:
         validate_manifest(errors)
         validate_mcp(errors)
         validate_hooks(errors)
+        validate_connection_ownership(errors)
         validate_skills(errors)
         validate_assets_and_readme(errors)
         validate_secrets(errors)

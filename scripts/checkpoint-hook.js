@@ -11,13 +11,8 @@ const CHECKPOINT_INTERVAL_MS = 15 * 60 * 1000;
 const PROMPT_COOLDOWN_MS = 10 * 60 * 1000;
 const ACTIVITY_THRESHOLD = 6;
 
-// Claude Code hides the plugin's own server when the user has also connected the
-// claude.ai XMemo Connector (same endpoint), so both official names count.
-// Any other server's update_state never acknowledges the reminder.
-const XMEMO_UPDATE_STATE = new Set([
-  "mcp__plugin_xmemo_xmemo__update_state",
-  "mcp__claude_ai_XMemo__update_state"
-]);
+// Only the plugin-owned connection may acknowledge its checkpoint reminder.
+const XMEMO_UPDATE_STATE = "mcp__plugin_xmemo_xmemo__update_state";
 const WRITE_TOOLS = new Set(["Edit", "Write", "NotebookEdit", "MultiEdit"]);
 const WORK_TOOLS = new Set([
   ...WRITE_TOOLS,
@@ -139,7 +134,7 @@ function clearCheckpoint(state) {
 }
 
 function checkpointSaved(call) {
-  if (!call || !XMEMO_UPDATE_STATE.has(call.tool_name) ||
+  if (!call || call.tool_name !== XMEMO_UPDATE_STATE ||
       call.is_error === true || call.isError === true) return false;
   // PostToolBatch supplies serialized text or text content blocks. Inspect only
   // a bounded receipt; never retain it or impose a new state slot on Skills.
@@ -252,15 +247,16 @@ function onStop(input, state) {
       hookEventName: "Stop",
       additionalContext:
         `XMemo checkpoint due (${reasons}). Before ending, determine whether the ` +
-        "verified project state materially changed. If it did, use " +
+        "verified project state materially changed. If it did, use the plugin-owned " +
         "XMemo update_state using the project's existing state slot (default active_task) " +
         "to replace the scoped working checkpoint with the objective, verified status " +
         "and evidence, completed work, settled decisions, blocker, relevant artifacts, " +
         "provenance, and one exact next action. Use record_event only for a significant " +
         "milestone or handoff. Do not save raw transcripts, secrets, speculative claims, " +
         "or verbose reasoning. If no durable change exists or XMemo is unavailable, say " +
-        "so briefly and do not fabricate a successful save. If XMemo is not " +
-        "connected, ask the user to connect it through /mcp."
+        "so briefly and do not fabricate a successful save. If the plugin-owned " +
+        "connection is not authorized, ask the user to authorize it through /mcp. " +
+        "Saving through the claude.ai Connector does not clear this reminder."
     }
   };
 }
