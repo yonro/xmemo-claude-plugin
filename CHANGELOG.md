@@ -2,6 +2,13 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.10 - 2026-11-06
+
+- Use only the plugin's own OAuth connection again, in the Skills and the Hook. Revert the 1.0.8 change that let them use the claude.ai XMemo Connector, which the directory policy review flagged as forwarding a credential the plugin did not obtain. Only a successful `update_state` receipt from the plugin connection clears the checkpoint reminder; the receipt validation from 1.0.8 stays.
+- When the user has also connected the claude.ai XMemo Connector and Claude Code hides the plugin's server, the Skills and the Hook ask the user to authorize the plugin connection through `/mcp` instead of switching connections.
+- Remove the README "Local development" clone-and-run instructions; install through `/plugin` or the Anthropic Directory.
+- The package validator now rejects any reference to the claude.ai Connector's tool names in the shipped files.
+
 ## 1.0.9 - 2026-11-05
 
 - Stop referring to bundled image files by path: the README package listing no longer names the assets, and the architecture SVG embeds the XMemo icon inline instead of loading it from a separate file. The directory holds a version for review when a code block or a file in the plugin points at a bundled image. The images themselves are unchanged.
