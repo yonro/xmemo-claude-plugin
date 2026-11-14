@@ -31,8 +31,6 @@ jobs:
         run: python scripts/validate-package.py
       - name: Validate package (explicit repo profile)
         run: python scripts/validate-package.py --profile repo
-      - name: Test checkpoint hooks
-        run: node scripts/test-checkpoint-hook.js
 
   directory-artifact:
     name: Directory artifact dry-run
@@ -70,10 +68,8 @@ jobs:
         run: claude plugin validate "$RUNNER_TEMP/stage" --strict
       - name: XMemo package validation on the artifact
         run: python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
-      - name: Checkpoint hook tests on the artifact
-        env:
-          XMEMO_PLUGIN_ROOT: ${{ runner.temp }}/stage
-        run: node scripts/test-checkpoint-hook.js
+      - name: No hooks in the artifact
+        run: test ! -e "$RUNNER_TEMP/stage/hooks"
       - name: Artifact changes against claude-directory
         env:
           TREE: ${{ steps.build.outputs.tree }}
@@ -139,16 +135,15 @@ jobs:
           python "$BUILDER" build --source "$SOURCE" --stage "$RUNNER_TEMP/stage" --output "$RUNNER_TEMP/build.json"
           tree=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["tree"])' "$RUNNER_TEMP/build.json")
           echo "tree=$tree" >> "$GITHUB_OUTPUT"
-      - name: Gates on the fixture artifact (compat, validator, strict, hooks)
+      - name: Gates on the fixture artifact (compat, validator, strict, no hooks)
         env:
           TREE: ${{ steps.build.outputs.tree }}
-          XMEMO_PLUGIN_ROOT: ${{ runner.temp }}/stage
         run: |
           set -euo pipefail
           python "$BUILDER" compat --tree "$TREE"
           python scripts/validate-package.py --root "$RUNNER_TEMP/stage" --profile directory
           claude plugin validate "$RUNNER_TEMP/stage" --strict
-          node scripts/test-checkpoint-hook.js
+          test ! -e "$RUNNER_TEMP/stage/hooks"
       - name: Version and change gates pass for a real bump
         env:
           TREE: ${{ steps.build.outputs.tree }}

@@ -47,6 +47,14 @@
       "params": {
         "min_readme_words": 40
       }
+    },
+    "DC-10": {
+      "severity": "block",
+      "title": "No hooks of any type: no hooks/ folder, hooks.json, monitors.json, or plugin.json hooks field (Directory policy: Verified organizations only)"
+    },
+    "DC-11": {
+      "severity": "block",
+      "title": "Allowed file types only: Markdown, text, JSON, YAML, PNG, JPEG, GIF, WebP, ICO; no #! files, package manager configs, or extra .claude-plugin files (Directory policy: Verified organizations only)"
     }
   }
 }

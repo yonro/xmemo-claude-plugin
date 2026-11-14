@@ -4,12 +4,13 @@ All notable changes to the XMemo Claude plugin are documented here.
 
 ## 1.0.11 - 2026-11-15
 
-Comply with the Anthropic Directory rule "Hooks of type 'command' accepted only from Verified organizations", which held 1.0.10. The plugin no longer ships a command hook or any executable script. See `docs/design/checkpoint-without-command-hooks.md` in the source repository.
+Comply with two Anthropic Directory policy findings that refused 1.0.10: "Hooks of type command accepted only from Verified organizations", which covers hooks of every type, and "Files outside the allowed types accepted only from Verified organizations". The plugin now ships only Markdown Skills and documents, JSON configuration, and PNG images. See `docs/design/checkpoint-without-command-hooks.md` in the source repository.
 
-- Replace the seven command hooks and `scripts/checkpoint-hook.js` with one prompt-based Stop hook. A Claude model reads the Stop hook input, with the conversation as context, and asks Claude to continue once only when the final message reports a project milestone without an `XMemo checkpoint:` status line. No local program runs and no local state is kept.
-- Add `/xmemo:checkpoint` to save one verified working checkpoint on demand, and a checkpoint status-line rule to `memory-steward`.
-- Lost compared with the command hook: interrupted-session recovery at session start, the pre-compaction checkpoint, the activity and time thresholds, the reminder cooldown, and verification of the `update_state` receipt.
-- The package validator now accepts only the prompt-based Stop hook and rejects any command hook; `scripts/test-checkpoint-hook.js` now holds contract tests for it.
+- Remove the checkpoint Hook: `hooks/hooks.json` and `scripts/checkpoint-hook.js` are gone, and the plugin ships no hook of any type.
+- Checkpoints are Skill-driven: add `/xmemo:checkpoint` to save one verified working checkpoint on demand, and a rule in `memory-steward` to end each milestone turn with an `XMemo checkpoint: saved`, `not needed`, or `unavailable` line.
+- Lost compared with the Hook: interrupted-session recovery at session start, the pre-compaction checkpoint, the activity and time thresholds, and the turn-end reminder. `/xmemo:resume-work` still recovers from the latest saved checkpoint.
+- Keep the editable SVG source of the architecture diagram in the source repository only; the package ships the PNG.
+- The package validator and two new release gates (DC-10, DC-11) reject any hook, hooks field, or file outside the allowed types, including `#!` files and package manager configuration.
 
 ## 1.0.10 - 2026-11-06
 

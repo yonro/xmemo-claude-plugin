@@ -1,6 +1,6 @@
 ---
 name: checkpoint
-description: Save one verified XMemo working checkpoint for the current project now, replacing the previous one, so the next session or agent can continue from an exact next action. Use when the user asks to checkpoint, save progress, save where we are, or prepare to stop, switch machines, or hand over; when a material milestone was just completed; or when Claude Code asks for an XMemo checkpoint check at the end of a turn. Never saves raw transcripts, secrets, or unverified claims.
+description: Save one verified XMemo working checkpoint for the current project now, replacing the previous one, so the next session or agent can continue from an exact next action. Use when the user asks to checkpoint, save progress, save where we are, or prepare to stop, switch machines, or hand over; or when a material milestone was just completed. Never saves raw transcripts, secrets, or unverified claims.
 ---
 
 # XMemo Checkpoint

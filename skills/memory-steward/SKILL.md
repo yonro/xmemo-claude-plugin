@@ -180,7 +180,7 @@ Checkpoint proactively; do not wait to be reminded. When a turn completes a mate
 - `XMemo checkpoint: not needed` when nothing durable changed, or the current checkpoint already covers the work;
 - `XMemo checkpoint: unavailable` when the plugin connection is not authorized; suggest `/mcp`.
 
-Never write `saved` for a failed, skipped, or assumed save. Omit the line on turns that only answer, explain, explore, or plan. In Claude Code and Cowork, a prompt-based Stop check looks at the final message: when it reports a milestone without this line, Claude is asked once to decide and add it. The user can run `/xmemo:checkpoint` at any time.
+Never write `saved` for a failed, skipped, or assumed save. Omit the line on turns that only answer, explain, explore, or plan. No hook enforces this rule, so apply it yourself on every milestone turn. The user can run `/xmemo:checkpoint` at any time.
 
 ## 8. Resume deterministically
 

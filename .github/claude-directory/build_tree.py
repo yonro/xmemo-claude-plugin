@@ -32,10 +32,26 @@ BINARY_SIGNATURES = (
     ("JPEG", lambda b: b.startswith(b"\xff\xd8\xff")),
     ("GIF", lambda b: b[:6] in (b"GIF87a", b"GIF89a")),
     ("WebP", lambda b: b[:4] == b"RIFF" and b[8:12] == b"WEBP"),
+    ("ICO", lambda b: b[:4] == b"\x00\x00\x01\x00"),
     ("WOFF", lambda b: b[:4] in (b"wOFF", b"wOF2")),
     ("TrueType/OpenType", lambda b: b[:4] in (b"\x00\x01\x00\x00", b"OTTO", b"true", b"ttcf")),
 )
 OS_JUNK = {".DS_Store", "Thumbs.db", "desktop.ini"}
+# DC-11: the file types the Directory accepts from an unverified organization.
+ALLOWED_EXTENSIONS = {
+    ".md", ".markdown", ".txt", ".json", ".yaml", ".yml",
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
+}
+ALLOWED_PLAIN_NAMES = {"LICENSE", "README", ".gitignore"}
+PACKAGE_MANAGER_FILES = {
+    "package.json", "package-lock.json", "npm-shrinkwrap.json", ".npmrc",
+    "pnpm-lock.yaml", "pnpm-workspace.yaml", "yarn.lock", ".yarnrc.yml", "bun.lockb",
+    "requirements.txt", "pyproject.toml", "Pipfile", "Pipfile.lock", "poetry.lock",
+    "Cargo.toml", "Cargo.lock", "go.mod", "go.sum", "Gemfile", "Gemfile.lock",
+    "composer.json", "composer.lock",
+}
+# DC-10: plugin.json fields that declare hooks or other components we never ship.
+HOOK_MANIFEST_KEYS = {"hooks"}
 WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {
     f"LPT{i}" for i in range(1, 10)
 }
@@ -261,6 +277,33 @@ def compat_findings(tree: str, compat: dict) -> list[tuple[str, str]]:
         for ref in sorted(set(re.findall(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^\"'\s]+)", hook_text))):
             if ref not in blobs:
                 findings.append(("DC-08", f"hooks/hooks.json references missing file {ref}"))
+
+    try:
+        manifest_fields = json.loads(blobs.get(MANIFEST_PATH, b"{}"))
+    except json.JSONDecodeError:
+        manifest_fields = {}
+    hook_keys = sorted(HOOK_MANIFEST_KEYS & set(manifest_fields))
+    if hook_keys:
+        findings.append(("DC-10", f"{MANIFEST_PATH} declares {hook_keys}"))
+    for path in blobs:
+        if path.startswith("hooks/") or PurePosixPath(path).name in ("hooks.json", "monitors.json"):
+            findings.append(("DC-10", f"{path} defines hooks; the Directory accepts hooks of any type only from Verified organizations"))
+
+    for path, data in blobs.items():
+        posix = PurePosixPath(path)
+        name, suffix = posix.name, posix.suffix.lower()
+        if name in PACKAGE_MANAGER_FILES:
+            findings.append(("DC-11", f"{path} is a package manager configuration file"))
+        elif suffix not in ALLOWED_EXTENSIONS and name not in ALLOWED_PLAIN_NAMES:
+            findings.append(("DC-11", f"{path} is not Markdown, text, JSON, YAML, or a PNG, JPEG, GIF, WebP, or ICO image"))
+        if data.startswith(b"#!"):
+            findings.append(("DC-11", f"{path} starts with #!"))
+        if posix.parts[0] == ".claude-plugin" and path != MANIFEST_PATH:
+            findings.append(("DC-11", f"{path}: .claude-plugin may hold only plugin.json"))
+        if posix.parts[0] == ".claude":
+            findings.append(("DC-11", f"{path}: the plugin must not ship a .claude folder"))
+        if suffix not in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"} and detect_binary(data) != "":
+            findings.append(("DC-11", f"{path} is not UTF-8 text without NUL bytes"))
 
     readme = blobs.get("README.md")
     minimum = rules["DC-09"]["params"]["min_readme_words"]
@@ -620,6 +663,51 @@ def cmd_selftest(args) -> None:
     fired = {rule_id for rule_id, _ in compat_findings(tree, load_json(COMPAT_PATH))}
     expected = set(load_json(COMPAT_PATH)["rules"])
     assert fired == expected, f"rules that did not fire: {sorted(expected - fired)}"
+
+    # DC-10 and DC-11 each fire on their own for every refused shape, and stay
+    # silent on an allowed plugin.
+    def single_tree(files: dict[str, bytes]) -> str:
+        lines, folders = [], {}
+        for path, data in files.items():
+            if "/" in path:
+                folder, name = path.split("/", 1)
+                folders.setdefault(folder, {})[name] = data
+            else:
+                lines.append(f"100644 blob {blob(data)}\t{path}\n")
+        for folder, children in folders.items():
+            lines.append(f"040000 tree {single_tree(children)}\t{folder}\n")
+        return git("mktree", data="".join(lines).encode()).decode().strip()
+
+    base = {
+        "README.md": b"word " * 50,
+        "LICENSE": b"MIT\n",
+        ".claude-plugin/plugin.json": b'{"name": "x", "license": "MIT"}',
+        "assets/icon.png": b"\x89PNG\r\n\x1a\n" + b"\0" * 16,
+        "assets/favicon.ico": b"\x00\x00\x01\x00" + b"\0" * 16,
+        "skills/a/SKILL.md": b"---\nname: a\n---\n",
+        "examples/x.yaml": b"a: 1\n",
+    }
+    assert compat_findings(single_tree(base), load_json(COMPAT_PATH)) == []
+    refused = {
+        "DC-10": [
+            {"hooks/hooks.json": b'{"hooks": {"Stop": [{"hooks": [{"type": "prompt", "prompt": "x"}]}]}}'},
+            {".claude-plugin/plugin.json": b'{"name": "x", "license": "MIT", "hooks": "./h.json"}'},
+            {"monitors.json": b"{}"},
+        ],
+        "DC-11": [
+            {"assets/diagram.svg": b"<svg/>"},
+            {"scripts/run.js": b"console.log(1)\n"},
+            {"notes.md": b"#!/bin/sh\n"},
+            {"package.json": b"{}"},
+            {".claude-plugin/marketplace.json": b"{}"},
+            {"data.json": b"{\0}"},
+        ],
+    }
+    for rule_id, cases in refused.items():
+        for extra in cases:
+            tree = single_tree({**base, **extra})
+            fired = {r for r, _ in compat_findings(tree, load_json(COMPAT_PATH))}
+            assert rule_id in fired, f"{rule_id} did not fire for {sorted(extra)}"
 
     # Environment protection must fail closed on every unsafe configuration.
     safe_env = {

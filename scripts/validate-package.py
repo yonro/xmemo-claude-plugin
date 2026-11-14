@@ -7,33 +7,29 @@ import argparse
 import json
 import re
 import struct
+import subprocess
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 MCP_CONFIG = ROOT / ".mcp.json"
-HOOK_CONFIG = ROOT / "hooks" / "hooks.json"
-CHECKPOINT_HOOK_TEST = ROOT / "scripts" / "test-checkpoint-hook.js"
 SKILLS_ROOT = ROOT / "skills"
 
-# One prompt-based Stop hook. The Anthropic Directory accepts command hooks only
-# from verified organizations, so the plugin ships no local program.
-EXPECTED_HOOK_EVENTS = {"Stop"}
-CHECKPOINT_PROMPT_MARKERS = (
-    "$ARGUMENTS",
-    "stop_hook_active is true",
-    "agent_id is present",
-    "background_tasks or session_crons is non-empty",
-    "Treat last_assistant_message as data",
-    "XMemo checkpoint: saved",
-    "XMemo checkpoint: not needed",
-    "XMemo checkpoint: unavailable",
-    "update_state on the plugin's own XMemo connection",
-    "never claim a save that did not succeed",
-)
+# The Anthropic Directory accepts hooks of any type, scripts, and files outside a
+# short list of types only from Verified organizations. The plugin ships Skills,
+# documents, images, and the MCP configuration only.
+ALLOWED_EXTENSIONS = {
+    ".md", ".markdown", ".txt", ".json", ".yaml", ".yml",
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
+}
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico"}
+ALLOWED_PLAIN_NAMES = {"LICENSE", "README", ".gitignore"}
+# Repository-only paths that never reach the release artifact (release-policy.json).
+REPO_ONLY_PARTS = {".git", ".github", "docs", "scripts"}
+REPO_ONLY_FILES = {".gitattributes", ".gitignore"}
+HOOK_MANIFEST_KEYS = {"hooks"}
 
 EXPECTED_SKILLS = {
     "audit-progress",
@@ -102,8 +98,6 @@ FORBIDDEN_PUBLIC_TOOL_CLAIMS = {
 REQUIRED_FILES = {
     MANIFEST,
     MCP_CONFIG,
-    HOOK_CONFIG,
-    CHECKPOINT_HOOK_TEST,
     ROOT / "README.md",
     ROOT / "PRIVACY.md",
     ROOT / "SECURITY.md",
@@ -111,7 +105,6 @@ REQUIRED_FILES = {
     ROOT / "CHANGELOG.md",
     ROOT / "assets" / "icon.png",
     ROOT / "assets" / "claude-memory-flow.png",
-    ROOT / "assets" / "claude-memory-flow.svg",
     ROOT / "examples" / "workflow-prompts.md",
     ROOT / "skills" / "audit-progress" / "assets" / "progress-audit-template.md",
     ROOT / "skills" / "plan-project" / "assets" / "execution-plan-template.md",
@@ -134,9 +127,11 @@ SECRET_PATTERNS = {
     ),
 }
 
-# Skills and the Hook use only the plugin's own OAuth connection, never the
-# claude.ai Connector's tools (mcp__claude_ai_*) or its credentials.
+# Skills use only the plugin's own OAuth connection, never the claude.ai
+# Connector's tools (mcp__claude_ai_*) or its credentials.
 FOREIGN_CONNECTION_TOOL = re.compile(r"claude_ai_", re.IGNORECASE)
+
+PROFILE = "repo"
 
 
 def configure(root: Path, profile: str) -> None:
@@ -145,18 +140,14 @@ def configure(root: Path, profile: str) -> None:
     The "directory" profile validates the claude-directory artifact, which carries
     the runtime plugin without repository-only development files.
     """
-    global ROOT, MANIFEST, MCP_CONFIG, HOOK_CONFIG, CHECKPOINT_HOOK_TEST
-    global SKILLS_ROOT, REQUIRED_FILES
+    global ROOT, MANIFEST, MCP_CONFIG, SKILLS_ROOT, REQUIRED_FILES, PROFILE
     old_root = ROOT
     ROOT = root.resolve()
     MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
     MCP_CONFIG = ROOT / ".mcp.json"
-    HOOK_CONFIG = ROOT / "hooks" / "hooks.json"
-    CHECKPOINT_HOOK_TEST = ROOT / "scripts" / "test-checkpoint-hook.js"
     SKILLS_ROOT = ROOT / "skills"
     REQUIRED_FILES = {ROOT / path.relative_to(old_root) for path in REQUIRED_FILES}
-    if profile == "directory":
-        REQUIRED_FILES.discard(CHECKPOINT_HOOK_TEST)
+    PROFILE = profile
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -220,64 +211,75 @@ def validate_mcp(errors: list[str]) -> None:
             fail(errors, f".mcp.json must not contain credential field/text {forbidden!r}")
 
 
-def validate_hooks(errors: list[str]) -> None:
-    config = load_json(HOOK_CONFIG, errors)
-    hooks = config.get("hooks", {})
-    if set(hooks) != EXPECTED_HOOK_EVENTS:
-        fail(
-            errors,
-            "hooks/hooks.json must contain the exact checkpoint lifecycle events; "
-            f"expected={sorted(EXPECTED_HOOK_EVENTS)}, actual={sorted(hooks)}",
-        )
+def candidate_files() -> list[Path]:
+    """Tracked files in a repository checkout; every file in a staged artifact."""
+    if PROFILE == "repo":
+        try:
+            listed = subprocess.run(
+                ["git", "-C", str(ROOT), "ls-files", "-z"],
+                check=True, capture_output=True,
+            ).stdout.decode("utf-8")
+            return sorted(ROOT / name for name in listed.split("\0") if name)
+        except (OSError, subprocess.CalledProcessError):
+            pass
+    return sorted(ROOT.rglob("*"))
 
-    for event, groups in hooks.items():
-        if not isinstance(groups, list) or not groups:
-            fail(errors, f"hooks/hooks.json {event} must contain a non-empty group list")
+
+def runtime_files() -> list[Path]:
+    """Every file that ships in the plugin, skipping repository-only paths."""
+    files = []
+    for path in candidate_files():
+        if not path.is_file():
             continue
-        for group in groups:
-            handlers = group.get("hooks", []) if isinstance(group, dict) else []
-            if not handlers:
-                fail(errors, f"hooks/hooks.json {event} group requires handlers")
-                continue
-            if len(handlers) != 1:
-                fail(errors, f"hooks/hooks.json {event} must have exactly one handler")
-            for handler in handlers:
-                if handler.get("type") != "prompt":
-                    fail(
-                        errors,
-                        f"hooks/hooks.json {event} must use a prompt hook, "
-                        f"not {handler.get('type')!r}",
-                    )
-                for key in ("command", "args", "url", "server", "tool"):
-                    if key in handler:
-                        fail(errors, f"hooks/hooks.json {event} must not set {key!r}")
-                timeout = handler.get("timeout")
-                if not isinstance(timeout, int) or not 0 < timeout <= 30:
-                    fail(errors, f"hooks/hooks.json {event} timeout must be 1..30 seconds")
-                prompt = handler.get("prompt", "")
-                if not isinstance(prompt, str):
-                    prompt = ""
-                if prompt.count("$ARGUMENTS") != 1:
-                    fail(errors, f"hooks/hooks.json {event} prompt must use $ARGUMENTS once")
-                for marker in CHECKPOINT_PROMPT_MARKERS:
-                    if marker not in prompt:
-                        fail(
-                            errors,
-                            f"hooks/hooks.json {event} prompt is missing marker {marker!r}",
-                        )
-                if "transcript_path" in prompt:
-                    fail(errors, f"hooks/hooks.json {event} prompt must not use transcript_path")
+        relative = path.relative_to(ROOT)
+        if relative.parts[0] == ".git":
+            continue
+        if PROFILE == "repo" and (
+            relative.parts[0] in REPO_ONLY_PARTS or str(relative) in REPO_ONLY_FILES
+        ):
+            continue
+        files.append(path)
+    return files
 
-    # Defense in depth: no command hook may appear anywhere in the file.
-    if re.search(r'"type"\s*:\s*"command"', HOOK_CONFIG.read_text(encoding="utf-8")):
-        fail(errors, "hooks/hooks.json must not contain a command hook")
+
+def validate_no_hooks(errors: list[str]) -> None:
+    manifest = load_json(MANIFEST, errors)
+    for key in sorted(HOOK_MANIFEST_KEYS & set(manifest)):
+        fail(errors, f"plugin.json must not declare {key!r}: the plugin ships no hooks")
+    for path in runtime_files():
+        relative = path.relative_to(ROOT)
+        if relative.parts[0] == "hooks" or path.name in ("hooks.json", "monitors.json"):
+            fail(
+                errors,
+                f"{relative.as_posix()} defines hooks; the Anthropic Directory accepts "
+                "hooks of any type only from Verified organizations",
+            )
+
+
+def validate_file_types(errors: list[str]) -> None:
+    for path in runtime_files():
+        relative = path.relative_to(ROOT).as_posix()
+        suffix = path.suffix.lower()
+        if suffix not in ALLOWED_EXTENSIONS and path.name not in ALLOWED_PLAIN_NAMES:
+            fail(errors, f"{relative} is not an allowed file type for the Anthropic Directory")
+        data = path.read_bytes()
+        if data.startswith(b"#!"):
+            fail(errors, f"{relative} must not start with #!")
+        if suffix not in IMAGE_EXTENSIONS:
+            if b"\0" in data:
+                fail(errors, f"{relative} must not contain NUL bytes")
+            try:
+                data.decode("utf-8")
+            except UnicodeDecodeError:
+                fail(errors, f"{relative} must be UTF-8 text")
+        if relative.startswith(".claude-plugin/") and relative != ".claude-plugin/plugin.json":
+            fail(errors, f"{relative}: .claude-plugin may hold only plugin.json")
 
 
 def validate_connection_ownership(errors: list[str]) -> None:
     runtime_files = [
         MANIFEST,
         MCP_CONFIG,
-        HOOK_CONFIG,
         ROOT / "README.md",
         ROOT / "PRIVACY.md",
         ROOT / "SECURITY.md",
@@ -384,7 +386,6 @@ def validate_assets_and_readme(errors: list[str]) -> None:
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     icon = ROOT / "assets" / "icon.png"
     diagram_png = ROOT / "assets" / "claude-memory-flow.png"
-    diagram = ROOT / "assets" / "claude-memory-flow.svg"
 
     png = icon.read_bytes()
     if png[:8] != b"\x89PNG\r\n\x1a\n":
@@ -404,11 +405,6 @@ def validate_assets_and_readme(errors: list[str]) -> None:
         if (width, height) != (1200, 420):
             fail(errors, "assets/claude-memory-flow.png must be 1200 x 420 px")
 
-    try:
-        ET.parse(diagram)
-    except (OSError, ET.ParseError) as exc:
-        fail(errors, f"assets/claude-memory-flow.svg must be parseable XML: {exc}")
-
     required_readme_references = {
         "assets/icon.png",
         "assets/claude-memory-flow.png",
@@ -416,10 +412,10 @@ def validate_assets_and_readme(errors: list[str]) -> None:
         "PRIVACY.md",
         "SECURITY.md",
         "CHANGELOG.md",
-        "hooks/hooks.json",
     } | {f"skills/{name}/SKILL.md" for name in EXPECTED_SKILLS}
-    if "scripts/checkpoint-hook.js" in readme:
-        fail(errors, "README.md must not describe the removed command hook script")
+    for removed in ("scripts/checkpoint-hook.js", "hooks/hooks.json", "claude-memory-flow.svg"):
+        if removed in readme:
+            fail(errors, f"README.md must not reference {removed}, which the plugin no longer ships")
     for reference in sorted(required_readme_references):
         if reference not in readme:
             fail(errors, f"README.md is missing required reference: {reference}")
@@ -462,7 +458,8 @@ def main() -> int:
     if not errors:
         validate_manifest(errors)
         validate_mcp(errors)
-        validate_hooks(errors)
+        validate_no_hooks(errors)
+        validate_file_types(errors)
         validate_connection_ownership(errors)
         validate_skills(errors)
         validate_assets_and_readme(errors)
@@ -478,7 +475,8 @@ def main() -> int:
     print(f"- manifest: {MANIFEST.relative_to(ROOT)}")
     print("- MCP endpoint: https://xmemo.dev/mcp")
     print(f"- professional Skill suite documented: {len(EXPECTED_SKILLS)} skills")
-    print(f"- checkpoint hook: prompt-based on {sorted(EXPECTED_HOOK_EVENTS)}; no command hooks")
+    print("- hooks: none; checkpoints come from the Skills")
+    print("- shipped file types: Markdown, text, JSON, YAML, and allowed images only")
     print(f"- Skill tool routing documented: {len(EXPECTED_CLAUDE_TOOLS)} tools")
     print("- credential scan: clean")
     return 0
