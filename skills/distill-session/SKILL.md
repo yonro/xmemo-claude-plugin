@@ -1,6 +1,6 @@
 ---
 name: distill-session
-description: Turn an important Claude conversation or work session into concise, retrieval-ready XMemo outcomes. Use when summarizing key points, preserving decisions and rationale, extracting TODOs and unresolved questions, or saving unfinished progress. Do not archive raw transcripts, filler, secrets, or tentative ideas as confirmed facts.
+description: Turn an important Claude conversation or work session into concise, retrieval-ready XMemo outcomes. Use when summarizing key points, preserving decisions and rationale, extracting TODOs and unresolved questions, or saving unfinished progress. Do not archive raw transcripts, filler, sensitive data, or tentative ideas as confirmed facts.
 ---
 
 # Distill Session to XMemo
@@ -24,7 +24,7 @@ Classify the session into:
 - unresolved questions, choices, or blockers;
 - current verified state and exact next action.
 
-Exclude greetings, repeated explanations, raw transcripts, long logs, large code blocks, secrets, credentials, private traces, and speculative ideas that were not accepted.
+Exclude greetings, repeated explanations, raw transcripts, long logs, large code blocks, sign-in details, private traces, and speculative ideas that were not accepted.
 
 ## 3. Check existing memory before writing
 

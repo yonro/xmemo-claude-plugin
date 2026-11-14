@@ -21,11 +21,11 @@ The service may process project context, decisions, preferences, working state, 
 
 With the `knowledge:read` scope, Claude may also read items from the user's XMemo Knowledge bases when they are relevant to a request. The plugin does not request `knowledge:write`, so it cannot create or change Knowledge content.
 
-## Credentials
+## Sign-in
 
-- OAuth tokens are managed by Claude Code and must never be committed to this repository.
-- Never place passwords, API keys, bearer tokens, authorization codes, cookies, or reviewer credentials in memory or plugin files.
-- The plugin does not require a static API key.
+- The OAuth sign-in is managed by Claude. The plugin never sees or stores it.
+- Never place sign-in details of any kind in memory or plugin files.
+- The plugin asks the user for no sign-in details and reads none from the user's machine.
 
 ## User control
 

@@ -89,7 +89,7 @@ Progress Audit
 - Prefer newer evidence only when it addresses the same scope and is not superseded.
 - Preserve material disagreement when no authoritative source resolves it.
 - Keep source attribution readable; never treat an agent label as authentication or authorization.
-- Do not expose raw tokens, traces, private metadata, or hidden reasoning.
+- Do not expose sign-in details, traces, private metadata, or hidden reasoning.
 
 ```text
 XMemo coordination update

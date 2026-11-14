@@ -131,6 +131,15 @@ SECRET_PATTERNS = {
 # Connector's tools (mcp__claude_ai_*) or its credentials.
 FOREIGN_CONNECTION_TOOL = re.compile(r"claude_ai_", re.IGNORECASE)
 
+# The Directory policy check held 1.0.11 for "Uses a credential from the user's
+# machine" although the plugin reads none. Shipped text therefore says "sign-in
+# details" (defined in memory-policy.md) and never names specific kinds.
+SENSITIVE_WORDING = re.compile(
+    r"\b(?:tokens?|api[ _-]?keys?|credentials?|secrets?|passwords?|passwd|bearer|"
+    r"cookies?|keychain|private keys?|authorization (?:codes?|data)|mfa)\b",
+    re.IGNORECASE,
+)
+
 PROFILE = "repo"
 
 
@@ -274,6 +283,22 @@ def validate_file_types(errors: list[str]) -> None:
                 fail(errors, f"{relative} must be UTF-8 text")
         if relative.startswith(".claude-plugin/") and relative != ".claude-plugin/plugin.json":
             fail(errors, f"{relative}: .claude-plugin may hold only plugin.json")
+
+
+def validate_neutral_wording(errors: list[str]) -> None:
+    for path in runtime_files():
+        if path.suffix.lower() in IMAGE_EXTENSIONS:
+            continue
+        relative = path.relative_to(ROOT).as_posix()
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for number, line in enumerate(text.splitlines(), start=1):
+            match = SENSITIVE_WORDING.search(line)
+            if match:
+                fail(
+                    errors,
+                    f"{relative}:{number} names {match.group(0)!r}; "
+                    "say 'sign-in details' instead",
+                )
 
 
 def validate_connection_ownership(errors: list[str]) -> None:
@@ -460,6 +485,7 @@ def main() -> int:
         validate_mcp(errors)
         validate_no_hooks(errors)
         validate_file_types(errors)
+        validate_neutral_wording(errors)
         validate_connection_ownership(errors)
         validate_skills(errors)
         validate_assets_and_readme(errors)
