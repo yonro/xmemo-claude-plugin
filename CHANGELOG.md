@@ -2,6 +2,12 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.12 - 2026-11-15
+
+- Reword the documents and Skills. The rules against saving or asking for sign-in details are unchanged, but they now use one neutral term, defined in `memory-policy.md`, instead of listing specific kinds. The directory policy check held 1.0.11 for a finding about sign-in data; the plugin reads none from the user's machine, and the OAuth sign-in is handled entirely by Claude.
+- The package validator now rejects those specific terms in the shipped files.
+- No functional change.
+
 ## 1.0.11 - 2026-11-15
 
 Comply with two Anthropic Directory policy findings that refused 1.0.10: "Hooks of type command accepted only from Verified organizations", which covers hooks of every type, and "Files outside the allowed types accepted only from Verified organizations". The plugin now ships only Markdown Skills and documents, JSON configuration, and PNG images. See `docs/design/checkpoint-without-command-hooks.md` in the source repository.
@@ -14,7 +20,7 @@ Comply with two Anthropic Directory policy findings that refused 1.0.10: "Hooks 
 
 ## 1.0.10 - 2026-11-06
 
-- Use only the plugin's own OAuth connection again, in the Skills and the Hook. Revert the 1.0.8 change that let them use the claude.ai XMemo Connector, which the directory policy review flagged as forwarding a credential the plugin did not obtain. Only a successful `update_state` receipt from the plugin connection clears the checkpoint reminder; the receipt validation from 1.0.8 stays.
+- Use only the plugin's own OAuth connection again, in the Skills and the Hook. Revert the 1.0.8 change that let them use the claude.ai XMemo Connector, which the directory policy review did not accept. Only a successful `update_state` receipt from the plugin connection clears the checkpoint reminder; the receipt validation from 1.0.8 stays.
 - When the user has also connected the claude.ai XMemo Connector and Claude Code hides the plugin's server, the Skills and the Hook ask the user to authorize the plugin connection through `/mcp` instead of switching connections.
 - Remove the README "Local development" clone-and-run instructions; install through `/plugin` or the Anthropic Directory.
 - The package validator now rejects any reference to the claude.ai Connector's tool names in the shipped files.
@@ -75,7 +81,7 @@ Comply with two Anthropic Directory policy findings that refused 1.0.10: "Hooks 
 - Add proactive recall and save guidance to `memory-steward`: recall when saved context could change the result, offer to save lasting preferences and settled decisions, and skip XMemo for casual or one-turn work.
 - Add "Make memory compound" guidance to `memory-steward`: apply saved preferences visibly, update memories from user corrections, keep TODOs, decisions, and checkpoints fresh, organize for retrieval, and offer clean-up of duplicates and stale items.
 - Add good memory candidates to the memory policy.
-- Add a shared connection rule to `tool-routing.md`, referenced by every Skill: match tools regardless of host prefix, report that nothing was read or written when XMemo is not connected, point to `/mcp` or the plugin's Connectors tab, and never request credentials in chat.
+- Add a shared connection rule to `tool-routing.md`, referenced by every Skill: match tools regardless of host prefix, report that nothing was read or written when XMemo is not connected, point to `/mcp` or the plugin's Connectors tab, and never ask for sign-in details in chat.
 - Let the checkpoint Hook accept `update_state` from any MCP server name, so checkpoints saved through a project-scoped server or a connector also clear the pending marker.
 
 ## 1.0.0 - 2026-08-01

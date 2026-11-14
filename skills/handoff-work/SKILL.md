@@ -33,7 +33,7 @@ Include:
 10. **Exact next action**
 11. **Next review or acceptance gate**
 
-Exclude credentials, authorization data, private traces, raw logs, raw transcripts, and irrelevant internal identifiers.
+Exclude sign-in details, private traces, raw logs, raw transcripts, and irrelevant internal identifiers.
 
 ## 4. Persist the transfer deliberately
 

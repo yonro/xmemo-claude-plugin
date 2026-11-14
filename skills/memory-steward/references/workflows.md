@@ -88,4 +88,4 @@ Handoff
 - Next review gate: <evidence required before status transition>
 ```
 
-Never include credentials, raw authorization data, private traces, or unnecessary internal identifiers.
+Never include sign-in details, private traces, or unnecessary internal identifiers.

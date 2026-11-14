@@ -1,6 +1,6 @@
 ---
 name: checkpoint
-description: Save one verified XMemo working checkpoint for the current project now, replacing the previous one, so the next session or agent can continue from an exact next action. Use when the user asks to checkpoint, save progress, save where we are, or prepare to stop, switch machines, or hand over; or when a material milestone was just completed. Never saves raw transcripts, secrets, or unverified claims.
+description: Save one verified XMemo working checkpoint for the current project now, replacing the previous one, so the next session or agent can continue from an exact next action. Use when the user asks to checkpoint, save progress, save where we are, or prepare to stop, switch machines, or hand over; or when a material milestone was just completed. Never saves raw transcripts, sensitive data, or unverified claims.
 ---
 
 # XMemo Checkpoint
@@ -29,7 +29,7 @@ Write a compact checkpoint with:
 - stable artifact references (paths, branch, commit, pull request, run);
 - one exact next action another session or agent can execute.
 
-Leave out raw transcripts, secrets, tokens, credentials, personal identifiers, speculation, and verbose reasoning. Mark anything unverified as unverified, or leave it out.
+Leave out raw transcripts, sign-in details, personal identifiers, speculation, and verbose reasoning. Mark anything unverified as unverified, or leave it out.
 
 ## 4. Save
 

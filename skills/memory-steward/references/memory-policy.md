@@ -18,7 +18,7 @@ Use this reference to decide whether to save, update, checkpoint, preview, or sk
 | Task pauses with meaningful work remaining | Save or update one scoped working-state checkpoint |
 | Concrete future action | Create a TODO |
 | Casual chat or one-turn detail | Skip |
-| Secret, credential, token, or highly sensitive identifier | Never save |
+| Sign-in detail or highly sensitive identifier | Never save |
 | Financial transaction | Explain that Ledger operations are outside this plugin; do not substitute generic memory or another connection |
 
 ## Good candidates
@@ -86,7 +86,7 @@ Completed: <material finished work and evidence>
 Decisions: <settled choices>
 Next action: <one exact resumable step>
 Blocked by: <only when blocked>
-Artifacts: <stable references, never secrets or raw traces>
+Artifacts: <stable references, never sign-in details or raw traces>
 ```
 
 Update the same scoped checkpoint instead of creating permanent memories for every intermediate step.
@@ -103,6 +103,6 @@ Update the same scoped checkpoint instead of creating permanent memories for eve
 
 - Raw transcripts and verbatim conversation archives.
 - Long terminal output, stack traces, or code dumps.
-- Passwords, API keys, bearer tokens, cookies, OAuth or MFA codes.
+- Sign-in details of any kind: anything that grants access to an account, service, or device.
 - Payment identifiers, government identifiers, or unrelated personal data.
 - Unconfirmed claims presented as verified facts.
