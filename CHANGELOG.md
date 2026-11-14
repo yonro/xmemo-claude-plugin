@@ -2,6 +2,16 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.11 - 2026-11-15
+
+Comply with two Anthropic Directory policy findings that refused 1.0.10: "Hooks of type command accepted only from Verified organizations", which covers hooks of every type, and "Files outside the allowed types accepted only from Verified organizations". The plugin now ships only Markdown Skills and documents, JSON configuration, and PNG images. See `docs/design/checkpoint-without-command-hooks.md` in the source repository.
+
+- Remove the checkpoint Hook: `hooks/hooks.json` and `scripts/checkpoint-hook.js` are gone, and the plugin ships no hook of any type.
+- Checkpoints are Skill-driven: add `/xmemo:checkpoint` to save one verified working checkpoint on demand, and a rule in `memory-steward` to end each milestone turn with an `XMemo checkpoint: saved`, `not needed`, or `unavailable` line.
+- Lost compared with the Hook: interrupted-session recovery at session start, the pre-compaction checkpoint, the activity and time thresholds, and the turn-end reminder. `/xmemo:resume-work` still recovers from the latest saved checkpoint.
+- Keep the editable SVG source of the architecture diagram in the source repository only; the package ships the PNG.
+- The package validator and two new release gates (DC-10, DC-11) reject any hook, hooks field, or file outside the allowed types, including `#!` files and package manager configuration.
+
 ## 1.0.10 - 2026-11-06
 
 - Use only the plugin's own OAuth connection again, in the Skills and the Hook. Revert the 1.0.8 change that let them use the claude.ai XMemo Connector, which the directory policy review flagged as forwarding a credential the plugin did not obtain. Only a successful `update_state` receipt from the plugin connection clears the checkpoint reminder; the receipt validation from 1.0.8 stays.
