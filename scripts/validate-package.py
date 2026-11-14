@@ -140,6 +140,11 @@ SENSITIVE_WORDING = re.compile(
     re.IGNORECASE,
 )
 
+# The same check held 1.0.12 (MCP_FORWARDS_CREDENTIAL_ENV) on plugin.json, whose
+# only dollar-prefixed name was the editor-only schema key. Shipped files carry
+# no dollar-prefixed name at all, so nothing can look like an environment read.
+DOLLAR_NAME = re.compile(r"\$(?:\{|\(|[A-Za-z_])")
+
 PROFILE = "repo"
 
 
@@ -174,7 +179,6 @@ def load_json(path: Path, errors: list[str]) -> dict:
 def validate_manifest(errors: list[str]) -> None:
     manifest = load_json(MANIFEST, errors)
     expected = {
-        "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
         "name": "xmemo",
         "displayName": "XMemo",
         "license": "MIT",
@@ -298,6 +302,12 @@ def validate_neutral_wording(errors: list[str]) -> None:
                     errors,
                     f"{relative}:{number} names {match.group(0)!r}; "
                     "say 'sign-in details' instead",
+                )
+            if DOLLAR_NAME.search(line):
+                fail(
+                    errors,
+                    f"{relative}:{number} has a dollar-prefixed name, which the "
+                    "Directory can read as an environment variable",
                 )
 
 

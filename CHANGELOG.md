@@ -2,6 +2,12 @@
 
 All notable changes to the XMemo Claude plugin are documented here.
 
+## 1.0.13 - 2026-11-15
+
+- Remove the editor-only JSON schema field from `plugin.json`. The directory policy check held 1.0.12 for an environment-read finding on `plugin.json`, and that field's name was the only variable-like name in the package. The plugin reads nothing from the user's environment, and neither Claude Code nor the directory reads that field.
+- The package validator now rejects any variable-like name, such as an environment variable reference, in the shipped files.
+- No functional change.
+
 ## 1.0.12 - 2026-11-15
 
 - Reword the documents and Skills. The rules against saving or asking for sign-in details are unchanged, but they now use one neutral term, defined in `memory-policy.md`, instead of listing specific kinds. The directory policy check held 1.0.11 for a finding about sign-in data; the plugin reads none from the user's machine, and the OAuth sign-in is handled entirely by Claude.
