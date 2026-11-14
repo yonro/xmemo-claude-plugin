@@ -1,6 +1,6 @@
 # XMemo checkpoint continuity without command hooks
 
-- Status: adopted in 1.0.11 (C3 with the C1 prompt Stop hook). Originally a design spike, DevFlow task `INBOX-20261106-109054`.
+- Status: superseded. 1.0.11 ships C3 only, with no hook of any type. The Directory finding on 1.0.10 states "Changing the type won't help: this rule covers hooks of every type", so C1, C2 and C5 are not available to an unverified organization. Originally a design spike, DevFlow task `INBOX-20261106-109054`.
 - Branch: `spike/checkpoint-without-command-hooks`, cut from `main` at `9d846b6` (1.0.10).
 - Author: pc-claude (executor), 2026-11-06. Claude Code used for experiments: 2.1.318.
 

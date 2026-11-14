@@ -133,10 +133,8 @@ jobs:
       - name: "G4: Claude strict validation on the artifact"
         run: claude plugin validate "$RUNNER_TEMP/stage" --strict
 
-      - name: "G5: Checkpoint hook runtime tests on the artifact"
-        env:
-          XMEMO_PLUGIN_ROOT: ${{ runner.temp }}/stage
-        run: node scripts/test-checkpoint-hook.js
+      - name: "G5: No hooks in the artifact"
+        run: test ! -e "$RUNNER_TEMP/stage/hooks"
 
       - name: "G6: Version gate"
         env:

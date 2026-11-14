@@ -68,10 +68,10 @@ The publish job also requires an approval for this run before it pushes.
 | --- | --- |
 | G0 | Inputs: `x.y.z` version and a full SHA reachable from `main` |
 | G1 | Release policy: no forbidden, conflicting, or unclassified files |
-| G2 | Anthropic Directory compatibility rules DC-01 to DC-09 |
+| G2 | Anthropic Directory compatibility rules DC-01 to DC-11; DC-10 (no hooks) and DC-11 (allowed file types) mirror the Directory policy for unverified organizations |
 | G3 | `validate-package.py --profile directory` on the staged artifact, including the credential scan |
 | G4 | `claude plugin validate --strict` on the staged artifact with a pinned Claude Code version |
-| G5 | Checkpoint hook tests against the staged hook through `XMEMO_HOOK_PATH` |
+| G5 | The staged artifact has no `hooks/` folder |
 | G6 | `plugin.json` version equals the input and is greater than the `claude-directory` version |
 | G7 | The artifact differs from the current `claude-directory` tree |
 | G8 | `claude-directory` did not move during the build, and again before the push |
@@ -82,7 +82,7 @@ The publish job also requires an approval for this run before it pushes.
 `validate.yml` runs on every pull request:
 
 - **Directory artifact dry-run**: builds this commit's artifact and runs the self-test,
-  golden baseline, compatibility gates, strict validation, package validation, and hook tests.
+  golden baseline, compatibility gates, strict validation, package validation, and the no-hooks check.
 - **Release integration**: builds a local version-bump fixture, passes every gate, freezes
   the release commit, uploads and downloads the frozen artifact, verifies it, and publishes
   it into a local bare mirror. Tampered artifacts, stale heads, and the unchanged v1.0.0
