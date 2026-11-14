@@ -13,13 +13,14 @@ For product support, contact `support@xmemo.dev` or visit https://xmemo.dev/supp
 - Memory operations remain scoped to the signed-in user's authorized XMemo account.
 - The Skill forbids saving secrets, raw authorization data, private traces, or unnecessary personal identifiers.
 - Permanent deletion requires an explicit user request and an exact target.
-- The checkpoint Hook is fail-open, executes a bundled Node script in exec form,
-  does not spawn child processes or open network connections, and never blocks a
-  tool call or session exit.
-- Hook state contains only bounded counters, timestamps, reason labels, and a
-  project-path hash under `CLAUDE_PLUGIN_DATA`; it does not inspect or retain the
-  session transcript. It checks bounded checkpoint acknowledgement text without
-  retaining tool results.
+- The checkpoint Hook is a single prompt-based Stop hook. The plugin ships no
+  command hook and no executable script, and the Hook never blocks a tool call.
+  It asks Claude to continue at most once per turn (`stop_hook_active`), and
+  lets the turn end in subagents, while background work is pending, and when
+  the model is unsure.
+- The Hook keeps no local state and sends nothing to XMemo. Its single model
+  call is made by Claude Code under the user's own Claude account, and it treats
+  the final assistant message as data, not instructions.
 
 ## Repository hygiene
 
@@ -27,5 +28,5 @@ Before publishing a change:
 
 1. Run `python scripts/validate-package.py`.
 2. Run `claude plugin validate <plugin-path> --strict`.
-3. Run `node scripts/test-checkpoint-hook.js`.
+3. Run `node scripts/test-checkpoint-hook.js` (Hook contract tests).
 4. Review the diff for credentials, test accounts, internal endpoints, and accidental data exports.

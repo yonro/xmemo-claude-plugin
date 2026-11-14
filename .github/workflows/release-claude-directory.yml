@@ -135,7 +135,7 @@ jobs:
 
       - name: "G5: Checkpoint hook runtime tests on the artifact"
         env:
-          XMEMO_HOOK_PATH: ${{ runner.temp }}/stage/scripts/checkpoint-hook.js
+          XMEMO_PLUGIN_ROOT: ${{ runner.temp }}/stage
         run: node scripts/test-checkpoint-hook.js
 
       - name: "G6: Version gate"
