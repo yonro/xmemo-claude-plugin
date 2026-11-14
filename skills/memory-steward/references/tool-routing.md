@@ -4,7 +4,7 @@ Use only tools visible in the active XMemo MCP connection. This plugin does not 
 
 ## Connection rule
 
-The Skills use only the XMemo connection that this plugin configures and authorizes itself (`.mcp.json`, OAuth scopes `memory:read memory:write knowledge:read`). `knowledge:read` is read-only and lets `recall_context` include items from the user's XMemo Knowledge bases. The host may show its tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. First verify the tool belongs to this plugin-authorized connection; only then match the tool names below within that connection. If ownership cannot be established, do not call it. Do not route the Skills through any other connection or its credentials.
+The Skills use only the XMemo connection that this plugin configures and authorizes itself (`.mcp.json`, OAuth scopes `memory:read memory:write knowledge:read`). `knowledge:read` is read-only and lets `recall_context` include items from the user's XMemo Knowledge bases. The host may show its tools with a prefix, such as `mcp__plugin_xmemo_xmemo__recall`. First verify the tool belongs to this plugin-authorized connection; only then match the tool names below within that connection. If ownership cannot be established, do not call it. Do not route the Skills through any other connection.
 
 Before reporting that XMemo is disconnected, check whether the required tool is available on this plugin-authorized connection. If none is, or a needed tool is missing:
 
@@ -12,7 +12,7 @@ Before reporting that XMemo is disconnected, check whether the required tool is 
 2. Point the user to the host's connection control: run `/mcp` and sign in to XMemo in Claude Code, or open the XMemo plugin's Connectors tab and select Connect in the Claude app or Cowork.
 3. Continue from the live workspace or material the user supplied when that is still useful, and label the result as not grounded in saved memory.
 
-Never ask for tokens, passwords, or authorization codes in the conversation, and never claim a recall or save that did not run.
+Never ask for sign-in details in the conversation, and never claim a recall or save that did not run.
 
 ## Time-aware queries
 
